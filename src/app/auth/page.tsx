@@ -1,0 +1,30 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { PageShell } from "@/components/page-shell";
+
+export default function AuthPage() {
+  const [signup, setSignup] = useState(false);
+  const [forgot, setForgot] = useState(false);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    const form = new FormData(event.currentTarget);
+    const endpoint = forgot ? "/api/auth/forgot-password" : signup ? "/api/auth/signup" : "/api/auth/login";
+    try {
+      const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: form.get("name"), email: form.get("email"), password: form.get("password") }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Please try again.");
+      if (result.signedIn || (!signup && !forgot)) { window.dispatchEvent(new Event("dclutr:auth-change")); router.push("/profile"); }
+      else setMessage(result.message);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to sign in right now."); }
+    finally { setBusy(false); }
+  }
+  return <PageShell><div className="auth-wrap"><form className="auth-card" onSubmit={submit}><span className="eyebrow">FUTA STUDENT MARKETPLACE</span><h1>{forgot ? "Reset your password." : signup ? "Join D_clutr." : "Hello again."}</h1><p>{forgot ? "We’ll email a one-time reset link if an account matches. We never retrieve or email your current password." : signup ? "Create your account to discover campus finds and connect with other FUTA students." : "Sign in to pick up where you left off."}</p>{message && <div className="notice" role="status">{message}</div>}{signup && <div className="field"><label htmlFor="name">Your name</label><input id="name" name="name" required placeholder="Your name" /></div>}<div className="field"><label htmlFor="email">Email address</label><input id="email" name="email" type="email" required placeholder="you@example.com" /></div>{!forgot && <div className="field"><label htmlFor="password">Password</label><input id="password" name="password" type="password" required minLength={12} placeholder="At least 12 characters" /></div>}{!forgot && !signup && <button type="button" className="text-link" onClick={() => { setForgot(true); setMessage(""); }}>Forgot password?</button>}<button className="button button-dark" type="submit" disabled={busy}>{busy ? "Please wait…" : forgot ? "Email reset link" : signup ? "Create my account" : "Log in"}</button>{!forgot && <div className="form-note">By continuing, you agree to our <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.</div>}<div className="form-toggle">{forgot ? "Remember your password? " : signup ? "Already part of D_clutr? " : "New around here? "}<button type="button" className="text-link" onClick={() => { if (forgot) setForgot(false); else setSignup(!signup); setMessage(""); }}>{forgot ? "Log in" : signup ? "Log in" : "Create an account"}</button></div></form></div></PageShell>;
+}

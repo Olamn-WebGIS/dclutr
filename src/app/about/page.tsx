@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { Leaf, Recycle, UsersRound } from "lucide-react";
+import { PageHead, PageShell } from "@/components/page-shell";
+
+export default function AboutPage() {
+  return <PageShell><PageHead eyebrow="A SMALL IDEA WITH A LOT OF HEART" title="Good things deserve another go." description="A student-to-student marketplace for passing on useful things and finding affordable pre-loved essentials around FUTA." /><section className="content-card"><h2>Made for campus life.</h2><p>D_clutr is a student marketplace for the Federal University of Technology, Akure community. Find study materials, room essentials, and everyday items from other students around campus and Akure.</p><p>We want buying and selling secondhand to feel easy, warm, and local. Give useful things a second chapter, save money where you can, and agree on safe public meetups.</p><div className="verify-steps"><div className="verify-step"><Recycle size={20} /><b>Keep useful things moving</b><p>Pass on items another student can use.</p></div><div className="verify-step"><UsersRound size={20} /><b>Trade student-to-student</b><p>Connect with the FUTA community.</p></div><div className="verify-step"><Leaf size={20} /><b>Choose a lighter way</b><p>Shop thoughtfully, one find at a time.</p></div></div><Link className="button button-dark" href="/market">Explore the campus market</Link></section></PageShell>;
+}
