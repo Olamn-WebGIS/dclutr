@@ -19,7 +19,12 @@ export class BackendError extends Error {
 export function backendEnv() {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) throw new BackendError("Backend is not configured. Add the Supabase settings from .env.local and restart the app.", 503);
+  if (!url || !serviceKey) {
+    const setupHint = process.env.VERCEL
+      ? "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Project Settings → Environment Variables for Production, then redeploy."
+      : "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local and restart the app.";
+    throw new BackendError(`Supabase backend is not configured. ${setupHint}`, 503);
+  }
   return { url, serviceKey };
 }
 
