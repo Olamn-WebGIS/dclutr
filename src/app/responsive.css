@@ -456,3 +456,7 @@ button {
   font-size: 11px;
   line-height: 1.5;
 }
+
+.contact-email {
+  font-weight: 700;
+}

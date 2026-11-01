@@ -17,7 +17,7 @@ export default function TermsPage() {
         <h2>Privacy and retention</h2>
         <p>Account, order, support, and verification information is used to operate the service, prevent fraud, and meet legal obligations. Chat messages are automatically deleted after 30 days. Verification documents are private and accessible only to the account owner and authorized admins; the business owner must publish a clear retention period before real launch. Contact the operator for access, correction, or deletion requests subject to legal and transaction records.</p>
         <h2>Contact</h2>
-        <p>For platform support, email <a href="mailto:notification@dclutr.com.ng">notification@dclutr.com.ng</a>. For administrative matters, email <a href="mailto:admin@dclutr.com.ng">admin@dclutr.com.ng</a>.</p>
+        <p>For platform support, email <a className="contact-email" href="mailto:notification@dclutr.com.ng">notification@dclutr.com.ng</a>. For administrative matters, email <a className="contact-email" href="mailto:admin@dclutr.com.ng">admin@dclutr.com.ng</a>.</p>
       </article>
     </PageShell>
   );
