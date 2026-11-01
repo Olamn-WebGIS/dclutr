@@ -4,7 +4,7 @@ import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 export async function GET() {
   try {
     const auth = await getAuthContext();
-    if (!auth) throw new BackendError("Sign in to view saved items.", 401);
+    if (!auth) return json({ listingIds: [], listings: [] });
     const rows = await adminFetch<Array<{ listing_id: string }>>(`rest/v1/favorites?user_id=eq.${auth.user.id}&select=listing_id&order=created_at.desc`);
     if (!rows.length) return json({ listingIds: [], listings: [] });
     const ids = rows.map((row) => row.listing_id);

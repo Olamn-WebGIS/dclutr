@@ -6,6 +6,8 @@ D_clutr is a student-to-student marketplace for the Federal University of Techno
 
 This workspace does not contain your Supabase, Paystack, or Zoho credentials. Never paste secrets into chat or commit `.env.local`.
 
+For Vercel production, add the required variables separately under **Project Settings → Environment Variables** (Production), then redeploy. A local `.env` file is not uploaded as Vercel runtime configuration. At minimum, configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, and `ACCOUNT_ENCRYPTION_KEY`; configure `PAYSTACK_SECRET_KEY` before enabling payments. The public listings endpoint returns `503` until the Supabase variables are available to the deployed server.
+
 1. Create a new Supabase project. Review and run [the initial marketplace migration](supabase/migrations/202610310001_initial_marketplace.sql) once on that empty project. It creates D_clutr accounts, profiles, marketplace/order tables, private document storage, RLS, rate-limit functions, seven-day listing expiry, and 30-day message deletion. The migration is for a fresh database, not an upgrade to an existing deployment.
 2. Copy `.env.example` to `.env.local` and set:
    - Supabase project URL and **service-role key**. The app uses that key only in server routes; do not expose it as `NEXT_PUBLIC_*`.

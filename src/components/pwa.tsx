@@ -100,13 +100,13 @@ export function PwaAppControls() {
         </div>
       )}
       <div className="pwa-toolbar">
-        <button type="button" className="pwa-action" onClick={handleNotifications}>
+        <button type="button" className="pwa-action" onClick={handleNotifications} aria-label="Enable browser alerts" title="Enable browser alerts">
           <Bell size={15} />
-          {notificationPermission === "granted" ? "Alerts on" : "Enable alerts"}
+          <span className="pwa-action-label">{notificationPermission === "granted" ? "Alerts on" : "Enable alerts"}</span>
         </button>
-        <button type="button" className="pwa-action pwa-action-primary" onClick={handleInstall}>
+        <button type="button" className="pwa-action pwa-action-primary" onClick={handleInstall} aria-label={isIOS ? "Install D_clutr on this iPhone" : "Install D_clutr app"} title="Install D_clutr app">
           <Download size={15} />
-          {isIOS ? "Install on iPhone" : "Install app"}
+          <span className="pwa-action-label">{isIOS ? "Install" : "Install app"}</span>
         </button>
       </div>
     </>

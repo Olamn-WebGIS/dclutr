@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./responsive.css";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { PwaAppControls } from "@/components/pwa";
 
@@ -23,6 +24,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#244b39",
 };

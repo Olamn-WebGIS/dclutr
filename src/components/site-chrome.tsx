@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Heart, Menu, MessageCircle, ShoppingBag } from "lucide-react";
+import { Heart, MessageCircle, ShoppingBag } from "lucide-react";
 import { AccountNavigation } from "@/components/account-navigation";
 
 export function SiteHeader() {
@@ -19,7 +19,6 @@ export function SiteHeader() {
           <Link className="icon-link" href="/chat" aria-label="Messages"><MessageCircle size={18} strokeWidth={1.7} /></Link>
           <Link className="icon-link" href="/checkout" aria-label="Bag"><ShoppingBag size={18} strokeWidth={1.7} /></Link>
           <AccountNavigation />
-          <Link className="mobile-nav" href="/market" aria-label="Browse market"><Menu size={19} /></Link>
         </div>
       </div>
     </header>
@@ -53,6 +52,7 @@ export function SiteFooter() {
           <Link href="/help">Help & FAQs</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
+          <a href="mailto:notification@dclutr.com.ng">Email support</a>
         </div>
       </div>
       <div className="footer-bottom">
