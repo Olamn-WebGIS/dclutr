@@ -125,6 +125,13 @@ export async function notifyOrderParticipants(buyerId: string, sellerId: string,
   ]);
 }
 
+export async function notifyOrderParticipantsByRole(buyerId: string, sellerId: string, subject: string, buyerText: string, sellerText: string, dedupeKey: string) {
+  await Promise.all([
+    notifyUser(buyerId, subject, buyerText, `${dedupeKey}:buyer`),
+    notifyUser(sellerId, subject, sellerText, `${dedupeKey}:seller`),
+  ]);
+}
+
 export async function notifyAdmin(subject: string, text: string, dedupeKey: string) {
   const to = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!to) return;

@@ -3,13 +3,15 @@ import { assertUuid } from "@/lib/server/security";
 import { assertSameOrigin } from "@/lib/server/security";
 import { deleteStorageObject } from "@/lib/server/storage";
 import { notifyUser } from "@/lib/server/mailer";
+import { purgeExpiredListings } from "@/lib/server/listing-cleanup";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await purgeExpiredListings();
     const { id } = await params;
     assertUuid(id);
     const rows = await adminFetch<Array<Record<string, unknown> & { id: string; seller: { display_name: string; verification_status: string }; photo_paths: string[] }>>(
-      `rest/v1/listings?id=eq.${id}&status=eq.active&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id,seller_id,title,description,category,condition,price_ngn,negotiable,meetup_area,photo_paths,created_at,expires_at,seller:profiles!listings_seller_id_fkey(display_name,verification_status)`,
+      `rest/v1/listings?id=eq.${id}&status=in.(active,sold)&select=id,seller_id,title,description,category,condition,price_ngn,negotiable,meetup_area,photo_paths,status,created_at,expires_at,seller:profiles!listings_seller_id_fkey(display_name,verification_status)`,
     );
     const listing = rows[0];
     if (!listing) throw new BackendError("This listing has expired or is no longer available.", 404);

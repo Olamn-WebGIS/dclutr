@@ -1,7 +1,8 @@
 import { createHash, randomInt } from "node:crypto";
 import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetch } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
-import { notifyAdmin, notifyOrderParticipants, notifyUser } from "@/lib/server/mailer";
+import { notifyAdmin, notifyOrderParticipantsByRole, notifyUser } from "@/lib/server/mailer";
+import { deleteStorageObject } from "@/lib/server/storage";
 
 function hashCode(code: string) { return createHash("sha256").update(code).digest("hex"); }
 
@@ -34,7 +35,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { code } = await request.json() as { code?: string };
     if (!/^\d{6}$/.test(code ?? "")) throw new BackendError("Enter the buyer’s six-digit delivery code.");
     const normalizedCode = code ?? "";
-    const rows = await userFetch<Array<{ id: string; seller_id: string; status: string }>>(`rest/v1/orders?id=eq.${id}&select=id,seller_id,status`, auth.session);
+    const rows = await userFetch<Array<{ id: string; seller_id: string; listing_id: string | null; status: string }>>(`rest/v1/orders?id=eq.${id}&select=id,seller_id,listing_id,status`, auth.session);
     const order = rows[0];
     if (!order || order.seller_id !== auth.user.id) throw new BackendError("Order not found.", 404);
     if (order.status !== "dispatched") throw new BackendError("This order is not awaiting delivery confirmation.", 409);
@@ -43,9 +44,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const deliveredAt = new Date().toISOString();
     const dueRows = await userFetch<string>("rest/v1/rpc/next_business_day", auth.session, { method: "POST", body: JSON.stringify({ p_from: deliveredAt }) });
     await adminFetch(`rest/v1/orders?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "delivered", delivered_at: deliveredAt, payout_due_at: dueRows, delivery_code_hash: null, delivery_code_attempts: 0 }) });
-    const participants = await userFetch<Array<{ buyer_id: string; seller_id: string; seller_payout_ngn: number }>>(`rest/v1/orders?id=eq.${id}&select=buyer_id,seller_id,seller_payout_ngn`, auth.session);
-    if (participants[0]) await notifyOrderParticipants(participants[0].buyer_id, participants[0].seller_id, "Delivery confirmed on D_clutr", `Delivery was confirmed. The seller's net payout is ${new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(participants[0].seller_payout_ngn)} after the 5% seller fee. It becomes due after one business day; the D_clutr admin records the manual transfer.`, `delivery-confirmed:${id}`);
+    if (order.listing_id) await removeDeliveredListing(order.listing_id);
+    const participants = await userFetch<Array<{ buyer_id: string; seller_id: string; seller_fee_ngn: number; seller_payout_ngn: number }>>(`rest/v1/orders?id=eq.${id}&select=buyer_id,seller_id,seller_fee_ngn,seller_payout_ngn`, auth.session);
+    if (participants[0]) await notifyOrderParticipantsByRole(participants[0].buyer_id, participants[0].seller_id, "Delivery confirmed on D_clutr", "Your handover is confirmed. Thanks for completing your D_clutr exchange.", `Delivery was confirmed. Your 5% seller fee is NGN ${participants[0].seller_fee_ngn}. Your net payout of NGN ${participants[0].seller_payout_ngn} is due after one business day. The D_clutr admin records the manual transfer.`, `delivery-confirmed:${id}`);
     if (participants[0]) await notifyAdmin("D_clutr seller payout scheduled", `Delivery for order ${id} is confirmed. Seller payout of NGN ${participants[0].seller_payout_ngn} becomes due after one business day. Sign in to the admin dashboard when it is due.`, `payout-due:${id}`);
     return json({ ok: true, payoutDueAt: dueRows, message: "Delivery confirmed. D_clutr admin will review the seller payout after one business day." });
   } catch (error) { return errorResponse(error); }
+}
+
+async function removeDeliveredListing(listingId: string) {
+  try {
+    const listings = await adminFetch<Array<{ photo_paths: string[] }>>(`rest/v1/listings?id=eq.${listingId}&select=photo_paths`);
+    if (!listings[0]) return;
+    await adminFetch(`rest/v1/listings?id=eq.${listingId}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "removed" }) });
+    const cleanup = await Promise.allSettled(listings[0].photo_paths.map((path) => deleteStorageObject("listing-images", path)));
+    if (cleanup.some((result) => result.status === "rejected")) {
+      await notifyAdmin("D_clutr delivered item cleanup needs review", `The item for listing ${listingId} was delivered, but one or more photos could not be removed from storage. The listing is hidden from the marketplace; please retry photo cleanup.`, `delivered-listing-cleanup:${listingId}`);
+      return;
+    }
+    await adminFetch(`rest/v1/listings?id=eq.${listingId}&status=eq.removed`, { method: "DELETE" });
+  } catch (error) {
+    console.error("Unable to remove delivered D_clutr listing:", error);
+    await notifyAdmin("D_clutr delivered item cleanup needs review", `The item for listing ${listingId} was delivered, but its listing record or photos could not be fully removed. Please review cleanup.`, `delivered-listing-cleanup:${listingId}`);
+  }
 }

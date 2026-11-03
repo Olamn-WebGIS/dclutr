@@ -24,7 +24,7 @@ export function ProductGrid({ items }: { items: Product[] }) {
     {items.map((product) => <article className="product-card" key={product.id} style={{ position: "relative" }}>
       <Link href={`/product/${product.id}`} className={`product-art tone-${product.color}`} aria-label={`View ${product.name}`}>
         {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="product-photo" /> : <span className="product-glyph" aria-hidden="true">{product.icon}</span>}
-        {product.featured && <span className="product-tag">A lovely find</span>}
+        {product.status === "sold" ? <span className="sold-out-tag">Sold out</span> : product.featured && <span className="product-tag">A lovely item</span>}
         {product.sellerVerified && <span className="verified-tag">Verified FUTA seller</span>}
       </Link>
       <button className="save-button" aria-label={saved.includes(product.id) ? "Remove from saved items" : "Save this item"} aria-pressed={saved.includes(product.id)} onClick={() => void toggleSaved(product.id)}><Heart size={16} fill={saved.includes(product.id) ? "#486849" : "none"} /></button>

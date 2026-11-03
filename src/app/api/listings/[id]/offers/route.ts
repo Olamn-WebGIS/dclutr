@@ -1,6 +1,6 @@
 import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetch } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
-import { notifyUser, notifyOrderParticipants } from "@/lib/server/mailer";
+import { notifyUser, notifyOrderParticipantsByRole } from "@/lib/server/mailer";
 import { formatNaira } from "@/lib/currency";
 import { checkRateLimit } from "@/lib/server/password-auth";
 
@@ -35,9 +35,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     assertUuid(id);
     const result = await userFetch<string>("rest/v1/rpc/start_fixed_price_purchase", auth.session, { method: "POST", body: JSON.stringify({ p_listing_id: id, p_actor_id: auth.user.id }) });
-    const orders = await adminFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${result}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn`);
+    const orders = await adminFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number; buyer_total_ngn: number; seller_payout_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${result}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn,buyer_total_ngn,seller_payout_ngn`);
     const order = orders[0];
-    if (order) await notifyOrderParticipants(order.buyer_id, order.seller_id, "D_clutr purchase request", `A student started a purchase conversation. Item price: ${formatNaira(order.amount_ngn)}. Buyer fee (2%): ${formatNaira(order.buyer_fee_ngn)}. Seller fee (5%): ${formatNaira(order.seller_fee_ngn)}. Review the item and both accept the exchange terms before payment.`, `order:created:${order.id}`);
+    if (order) await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "D_clutr purchase request", `The item price is ${formatNaira(order.amount_ngn)}. Your 2% buyer fee is ${formatNaira(order.buyer_fee_ngn)}, so your total will be ${formatNaira(order.buyer_total_ngn)}. Review the item and agree on the exchange terms before paying.`, `The item price is ${formatNaira(order.amount_ngn)}. Your 5% seller fee is ${formatNaira(order.seller_fee_ngn)}, so your estimated payout is ${formatNaira(order.seller_payout_ngn)}. Review the item and agree on the exchange terms before payment.`, `order:created:${order.id}`);
     return json({ ok: true, conversationId: result, message: "The seller conversation is open. Review and accept the exchange terms together." }, 201);
   } catch (error) { return errorResponse(error); }
 }

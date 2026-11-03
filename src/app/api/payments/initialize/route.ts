@@ -9,10 +9,12 @@ export async function POST(request: Request) {
     const { orderId } = await request.json() as { orderId?: string };
     if (!orderId) throw new BackendError("Order reference is required.");
     assertUuid(orderId);
-    const rows = await userFetch<Array<{ id: string; buyer_id: string; buyer_total_ngn: number; status: string; buyer_terms_accepted_at: string | null; seller_terms_accepted_at: string | null }>>(`rest/v1/orders?id=eq.${orderId}&select=id,buyer_id,buyer_total_ngn,status,buyer_terms_accepted_at,seller_terms_accepted_at`, auth.session);
+    const rows = await userFetch<Array<{ id: string; buyer_id: string; listing_id: string | null; buyer_total_ngn: number; status: string; buyer_terms_accepted_at: string | null; seller_terms_accepted_at: string | null }>>(`rest/v1/orders?id=eq.${orderId}&select=id,buyer_id,listing_id,buyer_total_ngn,status,buyer_terms_accepted_at,seller_terms_accepted_at`, auth.session);
     const order = rows[0];
     if (!order || order.buyer_id !== auth.user.id) throw new BackendError("Order not found.", 404);
     if (order.status !== "awaiting_payment" || !order.buyer_terms_accepted_at || !order.seller_terms_accepted_at) throw new BackendError("Both parties must accept the terms before payment.", 409);
+    const listings = order.listing_id ? await adminFetch<Array<{ status: string }>>(`rest/v1/listings?id=eq.${order.listing_id}&select=status`) : [];
+    if (!listings[0] || listings[0].status !== "active") throw new BackendError("This item has sold out and can no longer be paid for.", 409);
     const secret = requireEnv("PAYSTACK_SECRET_KEY");
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
     const reference = `dcl-${order.id}-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;

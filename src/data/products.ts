@@ -14,6 +14,7 @@ export type Product = {
   negotiable?: boolean;
   sellerVerified?: boolean;
   sellerId?: string;
+  status?: string;
   description?: string;
   imageUrl?: string | null;
 };

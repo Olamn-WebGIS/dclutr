@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     await purgeExpiredListings();
     const search = new URL(request.url).searchParams;
-    const filters = ["status=eq.active", `expires_at=gt.${encodeURIComponent(new Date().toISOString())}`, `select=${encodeURIComponent(listingSelect)}`, "order=created_at.desc", "limit=100"];
+    const filters = ["status=in.(active,sold)", `select=${encodeURIComponent(listingSelect)}`, "order=created_at.desc", "limit=100"];
     const category = search.get("category");
     const term = search.get("q")?.trim().slice(0, 60).replace(/[(),.*]/g, " ");
     if (category && category !== "Everything") filters.push(`category=eq.${encodeURIComponent(category)}`);

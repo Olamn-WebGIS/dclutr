@@ -1,7 +1,7 @@
 import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetch } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { formatNaira } from "@/lib/currency";
-import { notifyOrderParticipants, notifyUser } from "@/lib/server/mailer";
+import { notifyOrderParticipantsByRole, notifyUser } from "@/lib/server/mailer";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,9 +23,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (decision !== "accept") throw new BackendError("Choose accept or reject.");
     const conversationId = await userFetch<string>("rest/v1/rpc/accept_offer", auth.session, { method: "POST", body: JSON.stringify({ p_offer_id: id, p_actor_id: auth.user.id }) });
-    const orders = await userFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${conversationId}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn`, auth.session);
+    const orders = await userFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number; buyer_total_ngn: number; seller_payout_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${conversationId}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn,buyer_total_ngn,seller_payout_ngn`, auth.session);
     const order = orders[0];
-    if (order) await notifyOrderParticipants(order.buyer_id, order.seller_id, "Your D_clutr offer was accepted", `The offer for “${title}” was accepted at ${formatNaira(order.amount_ngn)}. Buyer fee (2%): ${formatNaira(order.buyer_fee_ngn)}. Seller fee (5%): ${formatNaira(order.seller_fee_ngn)}. Open your conversation to review the exchange terms.`, `offer:accepted:${id}`);
+    if (order) await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "Your D_clutr offer was accepted", `Your offer for “${title}” was accepted at ${formatNaira(order.amount_ngn)}. Your 2% buyer fee is ${formatNaira(order.buyer_fee_ngn)}, so your total will be ${formatNaira(order.buyer_total_ngn)}. Open your chat to review the exchange terms.`, `The offer for “${title}” was accepted at ${formatNaira(order.amount_ngn)}. Your 5% seller fee is ${formatNaira(order.seller_fee_ngn)}, so your estimated payout is ${formatNaira(order.seller_payout_ngn)}. Open your chat to review the exchange terms.`, `offer:accepted:${id}`);
     return json({ ok: true, conversationId, orderId: orders[0]?.id, message: "Offer accepted. Both of you can now review the exchange terms in your conversation." });
   } catch (error) { return errorResponse(error); }
 }

@@ -461,6 +461,20 @@ button {
   font-weight: 700;
 }
 
+.sold-out-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  border: 1px solid #efc7c1;
+  border-radius: 3px;
+  background: #fff1ef;
+  color: #a52c22;
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .announcement {
   justify-content: flex-start;
   overflow: hidden;
@@ -498,11 +512,11 @@ button {
 
 @keyframes announcement-scroll {
   from {
-    transform: translateX(-50%);
+    transform: translateX(0);
   }
 
   to {
-    transform: translateX(0);
+    transform: translateX(-50%);
   }
 }
 
