@@ -460,3 +460,63 @@ button {
 .contact-email {
   font-weight: 700;
 }
+
+.announcement {
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.announcement-track,
+.announcement-group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.announcement-track {
+  width: max-content;
+  animation: announcement-scroll 36s linear infinite;
+}
+
+.announcement-message {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 20px;
+  white-space: nowrap;
+}
+
+.announcement-message span {
+  color: #c6d6ad;
+  font-size: 14px;
+}
+
+.announcement:hover .announcement-track {
+  animation-play-state: paused;
+}
+
+@keyframes announcement-scroll {
+  from {
+    transform: translateX(-50%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-track {
+    animation: none;
+  }
+
+  .announcement-group:not(:first-child),
+  .announcement-message:not(:first-child) {
+    display: none;
+  }
+
+  .announcement-group:first-child {
+    margin-inline: auto;
+  }
+}

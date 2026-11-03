@@ -10,7 +10,7 @@ export default function HomePage() {
           <span className="eyebrow"><Sparkles size={14} /> MADE FOR FUTA, AKURE</span>
           <h1>D_clutr items,<br /><em>second chapters.</em></h1>
           <p>Made for FUTA students in Akure, D_clutr helps you pass on useful things, find affordable pre-loved essentials, and connect with students nearby.</p>
-          <div className="hero-actions"><Link className="button button-dark" href="/market">Browse D_clutr items <ArrowRight size={17} /></Link><Link className="text-link" href="/sell">Have something you no longer need? Pass it on <ArrowDownRight size={15} /></Link></div>
+          <div className="hero-actions"><Link className="button button-dark" href="/market">Browse D_clutr items <ArrowRight size={17} /></Link><Link className="text-link" href="/sell">Have something you no longer need? <ArrowDownRight size={15} /></Link></div>
           <div className="hero-proof"><div className="avatar-stack"><span>F</span><span>U</span><span>T</span><span>A</span></div><span><strong>Made for FUTA students</strong> · useful items, close by</span></div>
         </div>
         <div className="hero-art" aria-label="A curated collection of pre-loved home goods">

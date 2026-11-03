@@ -36,7 +36,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <PwaAppControls />
-        <div className="announcement">Made for FUTA students <span aria-hidden="true">✳</span> Find something good, pass something on.</div>
+        <div className="announcement" role="note" aria-label="Made for FUTA students. Find something good, pass something on.">
+          <div className="announcement-track" aria-hidden="true">
+            {Array.from({ length: 2 }, (_, group) => (
+              <div className="announcement-group" key={group}>
+                {Array.from({ length: 6 }, (_, item) => (
+                  <span className="announcement-message" key={item}>Made for FUTA students <span>✳</span> Find something good, pass something on.</span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
         <SiteHeader />
         <main>{children}</main>
         <SiteFooter />
