@@ -45,7 +45,7 @@ export function PwaAppControls() {
       installPrompt.prompt();
       const result = await installPrompt.userChoice;
       if (result.outcome === "accepted") setToast("D_clutr was added to your device.");
-      else setToast("Install was dismissed.");
+      else setToast("No problem. You can install D_clutr later.");
       setInstallPrompt(null);
       return;
     }
@@ -55,12 +55,12 @@ export function PwaAppControls() {
       return;
     }
 
-    setToast("This device is not eligible for an install prompt right now.");
+    setToast("You can’t install D_clutr on this device right now.");
   }
 
   async function handleNotifications() {
     if (!("Notification" in window)) {
-      setToast("Browser notifications are not supported here.");
+      setToast("This browser doesn’t support notifications. You can still check D_clutr for updates.");
       return;
     }
 
@@ -70,7 +70,7 @@ export function PwaAppControls() {
         body: "You are now receiving updates on this device.",
         icon: "/icon.svg",
       });
-      setToast("Browser alerts are enabled.");
+      setToast("You’ll get updates on this device.");
       return;
     }
 
@@ -82,11 +82,11 @@ export function PwaAppControls() {
         body: "You are now receiving updates on this device.",
         icon: "/icon.svg",
       });
-      setToast("Browser alerts are enabled.");
+      setToast("You’ll get updates on this device.");
       return;
     }
 
-    setToast("Browser notifications were not allowed.");
+    setToast("Notifications are off. You can turn them on in your browser settings.");
   }
 
   return (
@@ -100,9 +100,9 @@ export function PwaAppControls() {
         </div>
       )}
       <div className="pwa-toolbar">
-        <button type="button" className="pwa-action" onClick={handleNotifications} aria-label="Enable browser alerts" title="Enable browser alerts">
+        <button type="button" className="pwa-action" onClick={handleNotifications} aria-label="Turn on notifications" title="Turn on notifications">
           <Bell size={15} />
-          <span className="pwa-action-label">{notificationPermission === "granted" ? "Alerts on" : "Enable alerts"}</span>
+          <span className="pwa-action-label">{notificationPermission === "granted" ? "Notifications on" : "Turn on notifications"}</span>
         </button>
         <button type="button" className="pwa-action pwa-action-primary" onClick={handleInstall} aria-label={isIOS ? "Install D_clutr on this iPhone" : "Install D_clutr app"} title="Install D_clutr app">
           <Download size={15} />

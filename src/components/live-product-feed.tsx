@@ -12,15 +12,15 @@ export function LiveProductFeed({ limit = 4 }: { limit?: number }) {
     fetch("/api/listings")
       .then(async (response) => {
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Marketplace is unavailable.");
+        if (!response.ok) throw new Error("We can’t load items right now. Please try again in a bit.");
         return result.listings as Product[];
       })
       .then(setProducts)
-      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load current listings."))
+      .catch(() => setError("We can’t load items right now. Please try again in a bit."))
       .finally(() => setLoading(false));
   }, []);
-  if (loading) return <div className="status-note">Loading live student listings…</div>;
+  if (loading) return <div className="status-note">Loading D_clutr items…</div>;
   if (error) return <div className="status-note error">{error}</div>;
-  if (!products.length) return <div className="status-note">No active listings yet. Once sellers are verified, new listings will appear here.</div>;
+  if (!products.length) return <div className="status-note">No one has posted yet. Check back soon for new items from FUTA students.</div>;
   return <ProductGrid items={products.slice(0, limit)} />;
 }

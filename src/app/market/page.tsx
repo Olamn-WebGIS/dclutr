@@ -21,11 +21,11 @@ export default function MarketPage() {
     fetch("/api/listings")
       .then(async (response) => {
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Marketplace is unavailable.");
+        if (!response.ok) throw new Error("We can’t load D_clutr items right now. Please try again in a bit.");
         return result.listings as Product[];
       })
       .then(setProducts)
-      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load current listings."))
+      .catch(() => setError("We can’t load D_clutr items right now. Please try again in a bit."))
       .finally(() => setLoading(false));
   }, []);
   const visibleCategories = categories.filter((item) => item !== "Everything");
@@ -36,11 +36,11 @@ export default function MarketPage() {
     return result;
   }, [category, products, query, sort]);
   return <PageShell>
-    <PageHead eyebrow="FUTA STUDENTS, BUYING AND SELLING NEARBY" title="The campus market." description="Find room essentials, study materials, and everyday pre-loved items from students around FUTA and Akure." />
-    <div className="market-tools"><div className="search-wrap"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try ‘mattress’ or ‘fan’" aria-label="Search market" /></div><select className="select-control" value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort items"><option value="featured">Sort: Recommended</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>
+    <PageHead eyebrow="ITEMS FROM FUTA STUDENTS" title="D_clutr items for campus life." description="Browse room essentials, study materials, and everyday items posted by students in Akure." />
+    <div className="market-tools"><div className="search-wrap"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search for a mattress, fan, or book" aria-label="Search D_clutr items" /></div><select className="select-control" value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort items"><option value="featured">Sort: Recommended</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>
     <div className="category-row" aria-label="Categories">{visibleCategories.map((item) => <button key={item} className={`category-pill ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
-    <p className="market-count">{filtered.length} lovely {filtered.length === 1 ? "find" : "finds"} to browse</p>
-    {loading ? <div className="status-note">Loading live student listings…</div> : error ? <div className="status-note error">{error}</div> : filtered.length ? <ProductGrid items={filtered} /> : <div className="empty-state"><h2>No listings found</h2><p>Try a different search or category.</p></div>}
+    <p className="market-count">{filtered.length} {filtered.length === 1 ? "item" : "items"} to browse</p>
+    {loading ? <div className="status-note">Loading D_clutr items…</div> : error ? <div className="status-note error">{error}</div> : filtered.length ? <ProductGrid items={filtered} /> : <div className="empty-state"><h2>No items here yet</h2><p>Try another search or category, or check back later.</p></div>}
     <div style={{ height: 75 }} />
   </PageShell>;
 }

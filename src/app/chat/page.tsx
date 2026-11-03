@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Send, ShieldCheck } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { formatNaira } from "@/lib/currency";
+import { formatMarketplaceStatus } from "@/lib/marketplace-copy";
 
 type Conversation = { id: string; listingTitle: string; otherName: string; role: "buyer" | "seller"; priceNgn: number };
 type Message = { id: string; body: string; senderName: string; mine: boolean; created_at: string };
@@ -38,7 +39,7 @@ export default function ChatPage() {
   const loadConversations = useCallback(async () => {
     const response = await fetch("/api/conversations");
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Sign in to view your messages.");
+    if (!response.ok) throw new Error(data.error || "Log in to see your messages.");
     setConversations(data.conversations);
     if (!activeId) {
       const requested = new URLSearchParams(window.location.search).get("conversation");
@@ -51,15 +52,15 @@ export default function ChatPage() {
     const [messageResponse, orderResponse] = await Promise.all([fetch(`/api/conversations/${activeId}/messages`), fetch("/api/orders")]);
     const messageData = await messageResponse.json();
     const orderData = await orderResponse.json();
-    if (!messageResponse.ok) throw new Error(messageData.error || "Could not load messages.");
-    if (!orderResponse.ok) throw new Error(orderData.error || "Could not load order details.");
+    if (!messageResponse.ok) throw new Error(messageData.error || "We couldn’t load your messages. Please try again.");
+    if (!orderResponse.ok) throw new Error(orderData.error || "We couldn’t load this order. Please try again.");
     setMessages(messageData.messages);
     setOrders(orderData.orders);
   }, [activeId]);
 
-  useEffect(() => { loadConversations().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load inbox.")); }, [loadConversations]);
+  useEffect(() => { loadConversations().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "We couldn’t load your inbox. Please try again.")); }, [loadConversations]);
   useEffect(() => {
-    loadData().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load this conversation."));
+    loadData().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "We couldn’t load this chat. Please try again."));
     const timer = window.setInterval(() => { loadData().catch(() => undefined); }, 5000);
     return () => window.clearInterval(timer);
   }, [loadData]);
@@ -77,9 +78,9 @@ export default function ChatPage() {
     try {
       const response = await fetch(`/api/conversations/${activeId}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body: draft }) });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Message was not sent.");
+      if (!response.ok) throw new Error(result.error || "Your message didn’t send. Please try again.");
       setDraft(""); await loadData();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Message was not sent."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Your message didn’t send. Please try again."); }
     finally { setBusy(false); }
   }
 
@@ -88,10 +89,10 @@ export default function ChatPage() {
     try {
       const response = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Request failed.");
+      if (!response.ok) throw new Error(result.error || "We couldn’t update this order. Please try again.");
       if (result.code) setDeliveryCode(result.code);
-      setNotice(result.message || "Saved."); await loadData();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Request failed."); }
+      setNotice(result.message || "Your update is saved."); await loadData();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "We couldn’t update this order. Please try again."); }
     finally { setBusy(false); }
   }
 
@@ -101,38 +102,38 @@ export default function ChatPage() {
     try {
       const response = await fetch("/api/payments/initialize", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: order.id }) });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Payment could not be started.");
+      if (!response.ok) throw new Error(result.error || "We couldn’t start your payment. Please try again.");
       window.location.assign(result.authorizationUrl);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Payment could not be started."); setBusy(false); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "We couldn’t start your payment. Please try again."); setBusy(false); }
   }
 
   return <PageShell>
-    <PageHead eyebrow="D_CLUTR STUDENT INBOX" title="Messages." description="Agree on item details, meetup arrangements, and the exchange terms before payment." />
+    <PageHead eyebrow="D_CLUTR CHATS" title="Messages." description="Talk through the item, price, and a safe meetup before you pay." />
     {error && <div className="status-note error" role="alert">{error}</div>}
     {notice && <div className="status-note" role="status">{notice}</div>}
-    {!conversations.length ? <div className="content-card"><p>Your accepted offers and conversations will appear here.</p><Link className="button button-dark" href="/offers">View my offers</Link></div> : <section className="chat-layout" aria-label="Your conversations">
-      <aside className="chat-sidebar"><h2>Your inbox</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setDeliveryCode(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span></button>)}</aside>
+    {!conversations.length ? <div className="content-card"><p>Your chats will show up here after a seller accepts your offer.</p><Link className="button button-dark" href="/offers">See my offers</Link></div> : <section className="chat-layout" aria-label="Your conversations">
+      <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setDeliveryCode(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span></button>)}</aside>
       <div className="chat-window">
         <div className="chat-top">{active?.otherName} <span style={{ color: "#899187", fontWeight: 400 }}>· {active?.listingTitle}</span></div>
         {order && <div className="content-card" style={{ margin: 12, padding: 16 }}>
-          <strong style={{ fontSize: 12 }}>Exchange status: {order.status.replaceAll("_", " ")}</strong>
-          <p style={{ fontSize: 11, color: "#748075" }}>Item price: {formatNaira(order.amount_ngn)} · Buyer platform fee (2%): {formatNaira(order.buyer_fee_ngn)} · Buyer total: {formatNaira(order.buyer_total_ngn)} · Seller fee (5%): {formatNaira(order.seller_fee_ngn)} · Seller payout: {formatNaira(order.seller_payout_ngn)}. Both participants should accept these terms before payment.</p>
-          <details className="info-box"><summary>Read the exchange terms</summary><p>Confirm the listing, condition, amount, and a public meetup in Akure. After both accept, the buyer pays D_clutr through Paystack; payment is not released to the seller until delivery is confirmed. After the buyer checks the item and shares the six-digit code, the seller enters it here. The admin payout queue becomes eligible after one business day. A dispute can pause the payout. These terms require legal and payment-provider review before launch.</p></details>
+          <strong style={{ fontSize: 12 }}>Order update: {formatMarketplaceStatus(order.status)}</strong>
+          <p style={{ fontSize: 11, color: "#748075" }}>Item: {formatNaira(order.amount_ngn)} · Your 2% buyer fee: {formatNaira(order.buyer_fee_ngn)} · Total you pay: {formatNaira(order.buyer_total_ngn)} · Seller’s 5% fee: {formatNaira(order.seller_fee_ngn)} · Seller receives: {formatNaira(order.seller_payout_ngn)}. You and the seller both need to agree before payment.</p>
+          <details className="info-box"><summary>How this exchange works</summary><p>Check the item and agree on its condition, price, and a busy public meetup in Akure. Once you both agree, the buyer pays securely through D_clutr. We’ll confirm the payment before the seller hands over the item. After you receive and inspect it, share the six-digit code with the seller to confirm handover. Our team sends seller payouts manually after one business day. An open dispute can pause a payout. D_clutr is not a licensed escrow service.</p></details>
           {order.status === "terms_pending" && <div className="offer-actions"><button className="button button-dark" disabled={busy || Boolean(myTermsAccepted)} onClick={() => post(`/api/orders/${order.id}/terms`)}>{myTermsAccepted ? "You accepted the terms" : "I agree to the exchange terms"}</button><span className="condition-note">Both buyer and seller must agree.</span></div>}
-          {order.status === "awaiting_payment" && isBuyer && <button className="button button-dark" disabled={busy} onClick={pay}>Pay {formatNaira(order.buyer_total_ngn)} securely with Paystack</button>}
-          {order.status === "awaiting_payment" && !isBuyer && <p className="condition-note">Waiting for the buyer to complete payment. We will update this status after Paystack confirms payment.</p>}
-          {order.status === "paid" && !isBuyer && <button className="button button-dark" disabled={busy} onClick={() => post(`/api/orders/${order.id}/dispatch`)}>I have dispatched the item</button>}
-          {order.status === "paid" && isBuyer && <p className="condition-note">Payment received by D_clutr. The seller will update this conversation after dispatch.</p>}
+          {order.status === "awaiting_payment" && isBuyer && <button className="button button-dark" disabled={busy} onClick={pay}>Pay {formatNaira(order.buyer_total_ngn)} securely</button>}
+          {order.status === "awaiting_payment" && !isBuyer && <p className="condition-note">The buyer still needs to pay. We’ll update this chat when we confirm the payment.</p>}
+          {order.status === "paid" && !isBuyer && <button className="button button-dark" disabled={busy} onClick={() => post(`/api/orders/${order.id}/dispatch`)}>I’ve handed over the item</button>}
+          {order.status === "paid" && isBuyer && <p className="condition-note">Payment is confirmed. The seller will update this chat after handing over the item.</p>}
           {order.status === "dispatched" && isBuyer && <div className="offer-card"><strong>Delivery confirmation</strong><p>After you receive and inspect the item, generate a one-time code and share it with the seller.</p>{deliveryCode ? <p style={{ fontSize: 24, letterSpacing: 5, fontWeight: 700 }}>{deliveryCode}</p> : <button className="button button-dark" disabled={busy} onClick={() => post(`/api/orders/${order.id}/delivery-code`)}>Generate 6-digit code</button>}</div>}
           {order.status === "dispatched" && !isBuyer && <form className="offer-card" onSubmit={(event) => { event.preventDefault(); void post(`/api/orders/${order.id}/delivery-code`, "PUT", { code: confirmCode }); setConfirmCode(""); }}><strong>Confirm delivery</strong><p>Ask the buyer for their code only after handing over the item.</p><div className="field"><label htmlFor="delivery-code">Buyer’s 6-digit code</label><input id="delivery-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={confirmCode} onChange={(event) => setConfirmCode(event.target.value)} /></div><button className="button button-dark" disabled={busy}>Confirm delivery</button></form>}
-          {order.status === "delivered" && <p className="condition-note">Delivery confirmed. Seller payout of {formatNaira(order.seller_payout_ngn)} is due after one business day: {order.payout_due_at ? new Date(order.payout_due_at).toLocaleString("en-NG") : "pending admin review"}.</p>}
-          {["terms_pending", "awaiting_payment"].includes(order.status) && <button className="outline-button" disabled={busy} onClick={() => post(`/api/orders/${order.id}/cancel`)}>Cancel unpaid agreement</button>}
+          {order.status === "delivered" && <p className="condition-note">Handover confirmed. The seller’s payout of {formatNaira(order.seller_payout_ngn)} is due after one business day: {order.payout_due_at ? new Date(order.payout_due_at).toLocaleString("en-NG") : "waiting for our team"}.</p>}
+          {["terms_pending", "awaiting_payment"].includes(order.status) && <button className="outline-button" disabled={busy} onClick={() => post(`/api/orders/${order.id}/cancel`)}>Cancel this exchange</button>}
           {["paid", "dispatched", "delivered"].includes(order.status) && <Link className="text-link" href={`/disputes?order=${order.id}`}>Open a dispute</Link>}
         </div>}
         <div className="chat-messages" aria-live="polite">{messages.map((message) => <div key={message.id} className={`bubble ${message.mine ? "mine" : ""}`}><small>{message.mine ? "You" : message.senderName} · {new Date(message.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}</small><br />{message.body}</div>)}</div>
-        {canShareDetails && <div className="notice">Payment is confirmed. You can now share hostel, address, or contact details in chat here, but keep the transaction on D_clutr.</div>}
-        <form className="chat-compose" onSubmit={sendMessage}><input value={draft} onChange={(event) => setDraft(event.target.value)} aria-label="Write a message" placeholder={canShareDetails ? "Ask seller to share contact details, hostel, or pickup address here" : "Text only · no phone, bank details, or off-platform contacts"} maxLength={2000} /><button aria-label="Send message" type="submit" disabled={busy}><Send size={15} /></button></form>
-        <p style={{ color: "#7b857a", fontSize: 10, padding: "0 14px 12px" }}><ShieldCheck size={13} style={{ verticalAlign: "middle" }} /> Text-only chat. Messages are automatically deleted after 30 days. Contact details and off-platform transaction attempts are blocked until payment is confirmed.</p>
+        {canShareDetails && <div className="notice">Payment is confirmed. You can now share pickup details here. Keep the rest of your exchange on D_clutr.</div>}
+        <form className="chat-compose" onSubmit={sendMessage}><input value={draft} onChange={(event) => setDraft(event.target.value)} aria-label="Write a message" placeholder={canShareDetails ? "Write a message about pickup or contact details" : "Message the seller (no phone numbers or bank details yet)"} maxLength={2000} /><button aria-label="Send message" type="submit" disabled={busy}><Send size={15} /></button></form>
+        <p style={{ color: "#7b857a", fontSize: 10, padding: "0 14px 12px" }}><ShieldCheck size={13} style={{ verticalAlign: "middle" }} /> Keep messages here. For your safety, phone numbers and bank details are blocked until payment is confirmed. Chats are deleted after 30 days.</p>
       </div>
     </section>}
   </PageShell>;

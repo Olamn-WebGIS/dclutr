@@ -21,7 +21,7 @@ export function backendEnv() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) {
     const setupHint = process.env.VERCEL
-      ? "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Project Settings → Environment Variables for Production, then redeploy."
+      ? "We’re having trouble connecting to the marketplace right now. Please try again in a bit."
       : "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local and restart the app.";
     throw new BackendError(`Supabase backend is not configured. ${setupHint}`, 503);
   }
@@ -30,7 +30,7 @@ export function backendEnv() {
 
 function sessionSecret() {
   const secret = process.env.SESSION_SECRET;
-  if (!secret || Buffer.byteLength(secret) < 32) throw new BackendError("Set SESSION_SECRET to a random secret of at least 32 characters.", 503);
+  if (!secret || Buffer.byteLength(secret) < 32) throw new BackendError(process.env.VERCEL ? "We can’t complete that right now. Please try again in a bit." : "Set SESSION_SECRET to a random secret of at least 32 characters.", 503);
   return secret;
 }
 

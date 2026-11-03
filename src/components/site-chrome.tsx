@@ -8,13 +8,13 @@ export function SiteHeader() {
       <div className="nav-wrap">
         <Link className="brand" href="/">D_clutr<span className="brand-dot">.</span></Link>
         <nav className="main-nav" aria-label="Main navigation">
-          <Link href="/market">Shop all</Link>
+          <Link href="/market">Browse D_clutr items</Link>
           <Link href="/market?category=Campus%20essentials">Campus essentials</Link>
           <Link href="/market?category=Furniture">Furniture</Link>
           <Link href="/market?category=Home%20appliances">Home appliances</Link>
         </nav>
         <div className="nav-actions">
-          <Link className="nav-sell" href="/sell">Sell an item</Link>
+          <Link className="nav-sell" href="/sell">Post an item</Link>
           <Link className="icon-link" href="/favorites" aria-label="Saved items"><Heart size={18} strokeWidth={1.7} /></Link>
           <Link className="icon-link" href="/chat" aria-label="Messages"><MessageCircle size={18} strokeWidth={1.7} /></Link>
           <Link className="icon-link" href="/checkout" aria-label="Bag"><ShoppingBag size={18} strokeWidth={1.7} /></Link>
@@ -31,18 +31,18 @@ export function SiteFooter() {
       <div className="footer-main">
         <div className="footer-brand">
           <Link className="brand" href="/">D_clutr<span className="brand-dot">.</span></Link>
-          <p>A student marketplace for pre-loved finds around FUTA, Akure.</p>
+          <p>Find pre-loved essentials and pass useful things on to other FUTA students.</p>
         </div>
         <div className="footer-col">
           <strong>Explore</strong>
-          <Link href="/market">Shop all</Link>
-          <Link href="/sell">Sell with us</Link>
+          <Link href="/market">Browse D_clutr items</Link>
+          <Link href="/sell">Post an item</Link>
           <Link href="/about">Our story</Link>
         </div>
         <div className="footer-col">
           <strong>Your account</strong>
           <Link href="/profile">Profile</Link>
-          <Link href="/favorites">Saved finds</Link>
+          <Link href="/favorites">Saved items</Link>
           <Link href="/offers">Offers</Link>
           <Link href="/chat">Messages</Link>
           <Link href="/disputes">Disputes</Link>
@@ -57,7 +57,7 @@ export function SiteFooter() {
       </div>
       <div className="footer-bottom">
         <span>© 2026 D_clutr. Made for a second life.</span>
-        <span>Small finds. Lighter footprint.</span>
+        <span>Useful items. Lighter footprint.</span>
       </div>
     </footer>
   );

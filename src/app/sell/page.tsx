@@ -27,10 +27,10 @@ export default function SellPage() {
     try {
       const response = await fetch("/api/listings", { method: "POST", body: new FormData(event.currentTarget) });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Listing could not be published.");
+      if (!response.ok) throw new Error(data.error || "We couldn’t post your item. Please check the details and try again.");
       router.push(`/product/${data.listing.id}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Listing could not be published.");
+      setMessage(error instanceof Error ? error.message : "We couldn’t post your item. Please check the details and try again.");
     } finally {
       setBusy(false);
     }
@@ -40,20 +40,20 @@ export default function SellPage() {
     <PageShell>
       <PageHead
         eyebrow="PASS A GOOD THING ON"
-        title="List a campus find."
-        description="Posting is open to all students. Your verified badge is separate from posting access and appears only after approval."
+        title="Post something for sale."
+        description="Any signed-in FUTA student can post. Verify your profile if you’d like the verified student badge on your item."
       />
 
       <form className="content-card live-form" onSubmit={submit}>
-        <h2>Tell us about it</h2>
+          <h2>Tell buyers about your item</h2>
         {message && <div className="notice" role="status">{message}</div>}
 
         <p className="condition-note" style={{ marginTop: 0 }}>
-          Add your hostel name and the exact pickup address. After payment is confirmed, you can share pickup details and exchange info in chat.
+          Add your hostel and pickup point so buyers know where to meet. Once payment is confirmed, you can share more details in chat.
         </p>
 
         <div className="field">
-          <label htmlFor="title">Listing title</label>
+          <label htmlFor="title">What are you selling?</label>
           <input id="title" name="title" required minLength={4} maxLength={100} placeholder="e.g. Mattress or study lamp" />
         </div>
 
@@ -82,7 +82,7 @@ export default function SellPage() {
 
         <div className="field-row">
           <div className="field">
-            <label htmlFor="price">Price (?)</label>
+            <label htmlFor="price">Your price (₦)</label>
             <input id="price" name="price" type="number" min="100" step="1" required placeholder="12500" />
           </div>
           <div className="field">
@@ -92,17 +92,17 @@ export default function SellPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="itemAddress">Item address / exact pickup point</label>
+          <label htmlFor="itemAddress">Where should the buyer meet you?</label>
           <input id="itemAddress" name="itemAddress" required maxLength={180} placeholder="e.g. Room 2B, Hostel A, FUTA South Gate" />
         </div>
 
         <div className="field">
-          <label htmlFor="description">Description</label>
-          <textarea id="description" name="description" required minLength={10} maxLength={3000} placeholder="Describe the item, what condition it is in, and any important notes for the buyer." />
+          <label htmlFor="description">Tell buyers a little more</label>
+          <textarea id="description" name="description" required minLength={10} maxLength={3000} placeholder="Describe the item, its condition, and anything a buyer should know." />
         </div>
 
         <div className="field">
-          <label htmlFor="negotiable">Allow offers?</label>
+          <label htmlFor="negotiable">Open to offers?</label>
           <select id="negotiable" name="negotiable" defaultValue="false">
             <option value="false">No</option>
             <option value="true">Yes, I&apos;m open to offers</option>
@@ -111,6 +111,7 @@ export default function SellPage() {
 
         {!hasPayoutProfile && (
           <>
+            <p className="condition-note">For your first post, add the bank details you want us to use for your seller payout. You can update them from your profile later.</p>
             <div className="field-row">
               <div className="field">
                 <label htmlFor="bankName">Bank name</label>
@@ -129,12 +130,12 @@ export default function SellPage() {
         )}
 
         <div className="field">
-          <label htmlFor="photos">Photos (1 to 5)</label>
+          <label htmlFor="photos">Add 1 to 5 photos</label>
           <input id="photos" name="photos" type="file" accept="image/*" multiple required />
         </div>
 
         <button className="button button-dark" type="submit" disabled={busy}>
-          {busy ? "Publishing" : "Publish listing"}
+          {busy ? "Posting your item…" : "Post item"}
         </button>
       </form>
     </PageShell>

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({ email: auth.user.email, amount: order.buyer_total_ngn * 100, currency: "NGN", reference, callback_url: `${appUrl}/api/payments/callback`, metadata: { order_id: order.id, buyer_id: auth.user.id } }), cache: "no-store",
     });
     const result = await response.json();
-    if (!response.ok || !result.status || !result.data?.authorization_url) throw new BackendError(result.message || "Paystack could not initialize this payment.", 502);
+    if (!response.ok || !result.status || !result.data?.authorization_url) throw new BackendError("We couldn’t start your payment. Please try again in a bit.", 502);
     return json({ authorizationUrl: result.data.authorization_url });
   } catch (error) { return errorResponse(error); }
 }

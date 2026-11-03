@@ -7,7 +7,7 @@ import { PwaAppControls } from "@/components/pwa";
 export const metadata: Metadata = {
   metadataBase: new URL("https://dclutr.com.ng"),
   title: "D_clutr — Find a little something lovely",
-  description: "D_clutr is a student-to-student marketplace for affordable pre-loved finds around the Federal University of Technology, Akure.",
+  description: "Find affordable pre-loved essentials and pass useful things on to other FUTA students in Akure.",
   manifest: "/manifest.webmanifest",
   icons: [
     { rel: "icon", url: "/icon.svg" },
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <PwaAppControls />
-        <div className="announcement">A little less waste, a lot more lovely <span aria-hidden="true">✳</span> Shop secondhand, feel good.</div>
+        <div className="announcement">Made for FUTA students <span aria-hidden="true">✳</span> Find something good, pass something on.</div>
         <SiteHeader />
         <main>{children}</main>
         <SiteFooter />

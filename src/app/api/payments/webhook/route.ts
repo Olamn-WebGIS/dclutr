@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (order.status === "paid" || order.status === "dispatched" || order.status === "delivered" || order.status === "completed") return json({ received: true });
     if (order.status !== "awaiting_payment") throw new BackendError("Order cannot accept payment in its current state.", 409);
     await adminFetch(`rest/v1/orders?id=eq.${order.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "paid", paid_at: new Date().toISOString() }) });
-    await notifyOrderParticipants(order.buyer_id, order.seller_id, "D_clutr payment confirmed", `Paystack confirmed payment for your order. Item amount: ${formatNaira(order.amount_ngn)}. Buyer fee (2%): ${formatNaira(order.buyer_fee_ngn)}. Total charged: ${formatNaira(order.buyer_total_ngn)}. The seller can now arrange delivery in the D_clutr conversation.`, `payment-confirmed:${order.id}`);
+    await notifyOrderParticipants(order.buyer_id, order.seller_id, "D_clutr payment confirmed", `We’ve confirmed payment for your order. Item amount: ${formatNaira(order.amount_ngn)}. Buyer fee (2%): ${formatNaira(order.buyer_fee_ngn)}. Total paid: ${formatNaira(order.buyer_total_ngn)}. The seller can now arrange handover in your D_clutr chat.`, `payment-confirmed:${order.id}`);
     return json({ received: true });
   } catch (error) { return errorResponse(error); }
 }
