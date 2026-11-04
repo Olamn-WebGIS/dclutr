@@ -15,8 +15,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     );
     const listing = rows[0];
     if (!listing) throw new BackendError("This listing has expired or is no longer available.", 404);
+    const auth = await getAuthContext();
+    const myOffers = auth ? await adminFetch<Array<{ status: string; amount_ngn: number }>>(
+      `rest/v1/offers?listing_id=eq.${id}&buyer_id=eq.${auth.user.id}&status=in.(pending,rejected,accepted)&select=status,amount_ngn&order=created_at.desc,id.desc&limit=3`,
+    ) : [];
     const base = process.env.SUPABASE_URL?.replace(/\/$/, "");
-    return json({ listing: { ...listing, price: listing.price_ngn, originalPrice: listing.price_ngn, location: listing.meetup_area, sellerName: listing.seller?.display_name || "FUTA student", sellerVerified: listing.seller?.verification_status === "approved", imageUrls: (listing.photo_paths ?? []).map((path) => `${base}/storage/v1/object/public/listing-images/${path.split("/").map(encodeURIComponent).join("/")}`) } });
+    return json({ listing: { ...listing, myOffer: myOffers[0] ?? null, offerAttempts: myOffers.length, price: listing.price_ngn, originalPrice: listing.price_ngn, location: listing.meetup_area, sellerName: listing.seller?.display_name || "FUTA student", sellerVerified: listing.seller?.verification_status === "approved", imageUrls: (listing.photo_paths ?? []).map((path) => `${base}/storage/v1/object/public/listing-images/${path.split("/").map(encodeURIComponent).join("/")}`) } });
   } catch (error) { return errorResponse(error); }
 }
 

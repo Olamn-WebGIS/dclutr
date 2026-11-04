@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Send, ShieldCheck } from "lucide-react";
+import { Send, ShieldCheck, X } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { formatNaira } from "@/lib/currency";
 import { formatMarketplaceStatus } from "@/lib/marketplace-copy";
@@ -110,10 +110,10 @@ export default function ChatPage() {
 
   return <PageShell>
     <PageHead eyebrow="D_CLUTR CHATS" title="Messages." description="Talk through the item, price, and a safe meetup before you pay." />
-    {error && <div className="status-note error" role="alert">{error}</div>}
+    {error && <div className="pwa-toast pwa-toast-error" role="alert" aria-live="assertive"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError("")}><X size={14} /></button></div>}
     {notice && <div className="status-note" role="status">{notice}</div>}
     {!conversations.length ? <div className="content-card"><p>Your chats will show up here after a seller accepts your offer.</p><Link className="button button-dark" href="/offers">See my offers</Link></div> : <section className="chat-layout" aria-label="Your conversations">
-      <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setDeliveryCode(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span></button>)}</aside>
+      <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setDeliveryCode(""); setError(""); setNotice(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span></button>)}</aside>
       <div className="chat-window">
         <div className="chat-top">{active?.otherName} <span style={{ color: "#899187", fontWeight: 400 }}>· {active?.listingTitle}</span></div>
         {order && <div className="content-card" style={{ margin: 12, padding: 16 }}>

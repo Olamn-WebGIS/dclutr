@@ -21,9 +21,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (listing.seller_id === auth.user.id) throw new BackendError("You cannot make an offer on your own listing.");
     if (!listing.negotiable) throw new BackendError("The seller has not enabled offers for this item.");
     if (amount > listing.price_ngn) throw new BackendError("An offer cannot exceed the asking price.");
-    const rows = await adminFetch<Array<{ id: string }>>("rest/v1/offers?select=id", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ listing_id: id, listing_title_snapshot: listing.title, listing_seller_id: listing.seller_id, buyer_id: auth.user.id, amount_ngn: amount, note: body.note?.trim() || null }) });
-    await notifyUser(listing.seller_id, "New offer on your D_clutr listing", `A student offered ${formatNaira(amount)} for “${listing.title}”. Sign in to review and accept or decline the offer.`, `offer:new:${rows[0]?.id}:seller`);
-    return json({ ok: true, offerId: rows[0]?.id, message: "Offer sent to the seller." }, 201);
+    const rows = await adminFetch<Array<{ offer_id: string; was_updated: boolean }>>("rest/v1/rpc/submit_listing_offer", {
+      method: "POST",
+      body: JSON.stringify({ p_listing_id: id, p_actor_id: auth.user.id, p_amount_ngn: amount, p_note: body.note?.trim() || null }),
+    });
+    const offer = rows[0];
+    if (offer?.was_updated) {
+      await notifyUser(listing.seller_id, "A D_clutr offer was updated", `A student updated their offer to ${formatNaira(amount)} for “${listing.title}”. Sign in to review it.`, `offer:updated:${offer.offer_id}:${amount}`);
+    } else {
+      await notifyUser(listing.seller_id, "New offer on your D_clutr listing", `A student offered ${formatNaira(amount)} for “${listing.title}”. Sign in to review and accept or decline the offer.`, `offer:new:${offer?.offer_id}:seller`);
+    }
+    return json({ ok: true, offerId: offer?.offer_id, wasUpdated: offer?.was_updated ?? false, message: offer?.was_updated ? "Your pending offer was updated." : "Offer sent to the seller." }, offer?.was_updated ? 200 : 201);
   } catch (error) { return errorResponse(error); }
 }
 

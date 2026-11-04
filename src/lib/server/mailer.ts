@@ -17,6 +17,16 @@ function smtpConfig(): SmtpConfig | null {
 function encodeSubject(value: string) { return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`; }
 function wrapBase64(value: string) { return Buffer.from(value, "utf8").toString("base64").match(/.{1,76}/g)?.join("\r\n") ?? ""; }
 function safeHeader(value: string) { return value.replace(/[\r\n<>]/g, ""); }
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function brandedEmailHtml(message: SmtpMessage) {
+  const paragraphs = message.text.trim().split(/\n{2,}/).map((paragraph) =>
+    `<p style="margin:0 0 16px;color:#405347;font-size:15px;line-height:1.7;">${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`,
+  ).join("");
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f8f7f1;color:#203b2e;font-family:Arial,Helvetica,sans-serif;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8f7f1;padding:32px 12px;"><tr><td align="center"><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#fffefa;border:1px solid #e6e7dc;border-radius:6px;overflow:hidden;"><tr><td style="padding:24px 30px;background:#244b39;color:#fffefa;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:bold;">D_clutr<span style="color:#a8bda8;">.</span></div><div style="margin-top:5px;color:#dce7d9;font-size:12px;">Made for FUTA students in Akure</div></td></tr><tr><td style="padding:30px;"><h1 style="margin:0 0 22px;color:#203b2e;font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:normal;line-height:1.3;">${escapeHtml(message.subject)}</h1>${paragraphs}</td></tr><tr><td style="padding:20px 30px;background:#edf1e9;color:#526357;font-size:12px;line-height:1.7;"><p style="margin:0 0 6px;">Need a hand? Email <a href="mailto:notification@dclutr.com.ng" style="color:#244b39;font-weight:bold;">notification@dclutr.com.ng</a>.</p><p style="margin:0;">D_clutr · A student marketplace for FUTA, Akure</p></td></tr></table></td></tr></table></body></html>`;
+}
 
 async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
   await new Promise<void>((resolve, reject) => {
@@ -62,7 +72,9 @@ async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
         await command(`MAIL FROM:<${safeHeader(config.from)}>`);
         await command(`RCPT TO:<${safeHeader(message.to)}>`);
         await command("DATA");
-        const body = wrapBase64(message.text);
+        const boundary = `dclutr_${crypto.randomUUID().replaceAll("-", "")}`;
+        const textBody = wrapBase64(message.text);
+        const htmlBody = wrapBase64(brandedEmailHtml(message));
         const mail = [
           `From: D_clutr <${safeHeader(config.from)}>`,
           `To: <${safeHeader(message.to)}>`,
@@ -70,10 +82,19 @@ async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
           `Date: ${new Date().toUTCString()}`,
           `Message-ID: <${crypto.randomUUID()}@dclutr.local>`,
           "MIME-Version: 1.0",
+          `Content-Type: multipart/alternative; boundary="${boundary}"`,
+          "",
+          `--${boundary}`,
           "Content-Type: text/plain; charset=UTF-8",
           "Content-Transfer-Encoding: base64",
           "",
-          body,
+          textBody,
+          `--${boundary}`,
+          "Content-Type: text/html; charset=UTF-8",
+          "Content-Transfer-Encoding: base64",
+          "",
+          htmlBody,
+          `--${boundary}--`,
         ].join("\r\n").replace(/(^|\r\n)\./g, "$1..");
         socket.write(`${mail}\r\n.\r\n`);
         await readReply();

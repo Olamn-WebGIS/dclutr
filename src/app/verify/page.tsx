@@ -13,11 +13,19 @@ export default function VerifyPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   async function refresh() {
-    const response = await fetch("/api/verification"); const data = await response.json();
+    const response = await fetch("/api/verification", { cache: "no-store" }); const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Log in to verify your profile.");
     setSubmission(data.submission); setVerificationStatus(data.verificationStatus);
   }
-  useEffect(() => { refresh().catch((error: unknown) => setMessage(error instanceof Error ? error.message : "We couldn’t load your verification status. Please try again.")); }, []);
+  useEffect(() => {
+    const updateStatus = () => refresh().catch((error: unknown) => setMessage(error instanceof Error ? error.message : "We couldn’t load your verification status. Please try again."));
+    updateStatus();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") updateStatus();
+    }, 15000);
+    window.addEventListener("focus", updateStatus);
+    return () => { window.clearInterval(interval); window.removeEventListener("focus", updateStatus); };
+  }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
     try {

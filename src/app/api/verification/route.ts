@@ -10,7 +10,8 @@ export async function GET() {
     const rows = await userFetch<Array<{ id: string; status: string; rejection_reason: string | null; submitted_at: string }>>(
       `rest/v1/verification_submissions?user_id=eq.${auth.user.id}&select=id,status,rejection_reason,submitted_at&order=submitted_at.desc&limit=1`, auth.session,
     );
-    return json({ submission: rows[0] ?? null, verificationStatus: auth.profile.verification_status });
+    const submission = rows[0] ?? null;
+    return json({ submission, verificationStatus: submission?.status ?? auth.profile.verification_status });
   } catch (error) { return errorResponse(error); }
 }
 
