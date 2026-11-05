@@ -235,7 +235,8 @@ button {
 .field select,
 .field textarea,
 .search-wrap input,
-.chat-compose input {
+.chat-compose input,
+.chat-compose textarea {
   width: 100%;
   max-width: 100%;
 }
@@ -246,6 +247,17 @@ button {
 
 .chat-compose input {
   flex: 1 1 0;
+}
+
+.chat-compose textarea {
+  flex: 1 1 0;
+  min-height: 42px;
+  max-height: 120px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 11px;
 }
 
 .chat-compose button {
@@ -519,6 +531,11 @@ button {
     padding: 9px 10px;
   }
 
+  .chat-layout.is-conversation-open .chat-compose textarea {
+    min-height: 42px;
+    padding: 9px 10px;
+  }
+
   .chat-layout.is-conversation-open .chat-compose button {
     width: 42px;
     height: 42px;
@@ -748,6 +765,131 @@ button {
   color: #68776a;
   font-size: 11px;
   line-height: 1.5;
+}
+
+.admin-user-management-card {
+  min-width: 0;
+}
+
+.admin-user-management h2 {
+  margin-top: 0;
+}
+
+.admin-user-search {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.admin-user-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 18px;
+}
+
+.admin-user-list,
+.admin-user-detail {
+  min-width: 0;
+  max-height: 560px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.admin-user-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.admin-user-row,
+.admin-user-conversation {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-user-row span,
+.admin-user-row small {
+  overflow-wrap: anywhere;
+}
+
+.admin-user-row.is-selected {
+  border-color: var(--forest);
+  background: #f0f4ee;
+}
+
+.admin-user-profile,
+.admin-user-section,
+.admin-conversation-messages,
+.admin-delete-account {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-user-profile h3,
+.admin-user-section h4,
+.admin-conversation-messages h4 {
+  margin: 6px 0;
+}
+
+.admin-user-profile p,
+.admin-message p,
+.admin-user-listing {
+  overflow-wrap: anywhere;
+}
+
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.admin-delete-account {
+  border-top: 1px solid #efc7c1;
+  border-bottom: 0;
+}
+
+.admin-delete-account > p {
+  color: #68776a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-message {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f4f4ef;
+}
+
+.admin-message p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 650px) {
+  .admin-user-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-user-search {
+    flex-direction: column;
+  }
+
+  .admin-user-list,
+  .admin-user-detail {
+    max-height: 420px;
+  }
 }
 
 .contact-email {

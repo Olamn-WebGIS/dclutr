@@ -13,8 +13,9 @@ export async function POST(request: Request) {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password.length > 128) throw new BackendError("Email or password is incorrect.", 401);
     await allowAuthAttempt(email, request);
     if (!await checkRateLimit("login-ip", request, 40, 900)) throw new BackendError("Too many sign-in attempts from this connection. Try again later.", 429);
-    const profiles = await adminFetch<Array<{ id: string; email: string }>>(`rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,email&limit=1`);
+    const profiles = await adminFetch<Array<{ id: string; email: string; account_banned: boolean; account_deleted: boolean }>>(`rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,email,account_banned,account_deleted&limit=1`);
     const profile = profiles[0];
+    if (profile?.account_banned || profile?.account_deleted) throw new BackendError("This account is disabled. Contact D_clutr support for assistance.", 403);
     const accounts = profile ? await adminFetch<Array<{ password_hash: string; session_version: number }>>(`rest/v1/app_accounts?user_id=eq.${profile.id}&select=password_hash,session_version`) : [];
     const passwordHash = accounts[0]?.password_hash ?? await dummyHashPromise;
     const valid = await verifyPassword(password, passwordHash);

@@ -9,7 +9,7 @@ type AppSession = { userId: string; email: string; sessionVersion: number; expir
 export type AuthContext = {
   session: AppSession;
   user: { id: string; email: string };
-  profile: { id: string; display_name: string; email: string; role: "student" | "admin"; verification_status: string };
+  profile: { id: string; display_name: string; email: string; role: "student" | "admin"; verification_status: string; account_banned: boolean; account_deleted: boolean; posting_restricted: boolean };
 };
 
 export class BackendError extends Error {
@@ -101,11 +101,11 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   if (!session) return null;
   try {
     const [rows, accounts] = await Promise.all([
-      adminFetch<AuthContext["profile"][]>(`rest/v1/profiles?id=eq.${encodeURIComponent(session.userId)}&select=id,display_name,email,role,verification_status`),
+      adminFetch<AuthContext["profile"][]>(`rest/v1/profiles?id=eq.${encodeURIComponent(session.userId)}&select=id,display_name,email,role,verification_status,account_banned,account_deleted,posting_restricted`),
       adminFetch<Array<{ session_version: number }>>(`rest/v1/app_accounts?user_id=eq.${encodeURIComponent(session.userId)}&select=session_version`),
     ]);
     const profile = rows?.[0];
-    if (!profile || !accounts[0] || accounts[0].session_version !== session.sessionVersion || profile.email.toLowerCase() !== session.email.toLowerCase()) return null;
+    if (!profile || profile.account_banned || profile.account_deleted || !accounts[0] || accounts[0].session_version !== session.sessionVersion || profile.email.toLowerCase() !== session.email.toLowerCase()) return null;
     return { session, user: { id: profile.id, email: profile.email }, profile };
   } catch { return null; }
 }

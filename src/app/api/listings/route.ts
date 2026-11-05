@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     assertSameOrigin(request);
     const auth = await getAuthContext();
     if (!auth) throw new BackendError("Sign in before creating a listing.", 401);
+    if (auth.profile.posting_restricted) throw new BackendError("This account is restricted from posting listings. Contact D_clutr support for assistance.", 403);
     const form = await request.formData();
     const title = String(form.get("title") ?? "").trim();
     const description = String(form.get("description") ?? "").trim();
