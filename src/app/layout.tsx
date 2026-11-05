@@ -10,6 +10,21 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://dclutr.com.ng"),
   title: "D_clutr — Find a little something lovely",
   description: "Find affordable pre-loved essentials and pass useful things on to other FUTA students in Akure.",
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: "/",
+    siteName: "D_clutr",
+    title: "D_clutr — Find a little something lovely",
+    description: "Find affordable used essentials and sell useful things on to other FUTA students in Akure.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "D_clutr — used items for FUTA students in Akure" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "D_clutr — Find a little something lovely",
+    description: "Find affordable used essentials and sell useful things on to other FUTA students in Akure.",
+    images: ["/opengraph-image"],
+  },
   manifest: "/manifest.webmanifest",
   icons: [
     { rel: "icon", url: "/icon.svg" },
