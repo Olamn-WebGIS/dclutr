@@ -145,8 +145,8 @@ export function PwaAppControls() {
     <>
       {showUpdatePrompt && <div className="pwa-update-prompt" role="dialog" aria-labelledby="pwa-update-title" aria-describedby="pwa-update-description">
         <div className="pwa-update-copy">
-          <strong id="pwa-update-title">A D_clutr update is ready</strong>
-          <span id="pwa-update-description">Refresh to get the latest version.</span>
+          <strong id="pwa-update-title">A D_clutr update is available</strong>
+          <span id="pwa-update-description">Update to get the latest version.</span>
         </div>
         <div className="pwa-update-actions">
           <button type="button" className="pwa-update-later" onClick={() => setDismissedUpdate(availableUpdate)}>Later</button>

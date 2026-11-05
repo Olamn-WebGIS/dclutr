@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "D_clutr",
     short_name: "D_clutr",
     description: "D_clutr is a student-to-student marketplace for pre-loved finds around FUTA, Akure.",
-    start_url: "/",
+    start_url: "/market",
     display: "standalone",
     background_color: "#f8f7f1",
     theme_color: "#244b39",

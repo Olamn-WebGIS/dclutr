@@ -20,7 +20,7 @@ export default function AuthPage() {
       const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: form.get("name"), email: form.get("email"), password: form.get("password") }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Please try again.");
-      if (result.signedIn || (!signup && !forgot)) { window.dispatchEvent(new Event("dclutr:auth-change")); router.push("/profile"); }
+      if (result.signedIn || (!signup && !forgot)) { window.dispatchEvent(new Event("dclutr:auth-change")); router.push("/market"); }
       else showToast(result.message, "success");
     } catch (error) { showToast(error instanceof Error ? error.message : "We couldn’t sign you in. Please try again.", "error"); }
     finally { setBusy(false); }

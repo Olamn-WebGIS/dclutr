@@ -70,6 +70,10 @@ export default function ChatPage() {
     const timer = window.setInterval(() => { loadData().catch(() => undefined); }, 5000);
     return () => window.clearInterval(timer);
   }, [loadData]);
+  useEffect(() => {
+    document.body.classList.toggle("chat-conversation-open", showConversation);
+    return () => document.body.classList.remove("chat-conversation-open");
+  }, [showConversation]);
 
   const active = conversations.find((item) => item.id === activeId);
   const order = orders.find((item) => item.conversation_id === activeId);
@@ -119,7 +123,7 @@ export default function ChatPage() {
       <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setShowConversation(true); setDeliveryCode(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span className="conversation-details"><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span>{conversation.unreadCount > 0 && <span className="chat-unread-badge" aria-label={`${conversation.unreadCount} unread messages`}>{conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}</span>}</button>)}</aside>
       <div className="chat-window">
         <div className="chat-top"><button className="chat-back-button" type="button" onClick={() => setShowConversation(false)} aria-label="Back to your chats"><ArrowLeft size={18} /></button><span>{active?.otherName} <span style={{ color: "#899187", fontWeight: 400 }}>· {active?.listingTitle}</span></span></div>
-        {order && <div className="content-card" style={{ margin: 12, padding: 16 }}>
+        {order && <div className="content-card chat-order-card" style={{ margin: 12, padding: 16 }}>
           <strong style={{ fontSize: 12 }}>Order update: {formatMarketplaceStatus(order.status)}</strong>
           {isBuyer ? <p style={{ fontSize: 11, color: "#748075" }}>Item: {formatNaira(order.amount_ngn)} · Your 2% buyer fee: {formatNaira(order.buyer_fee_ngn)} · Total you pay: {formatNaira(order.buyer_total_ngn)}. You and the seller both need to agree before payment.</p> : <p style={{ fontSize: 11, color: "#748075" }}>Item: {formatNaira(order.amount_ngn)} · Your 5% seller fee: {formatNaira(order.seller_fee_ngn)} · Your estimated payout: {formatNaira(order.seller_payout_ngn)}. You and the buyer both need to agree before payment.</p>}
           <details className="info-box"><summary>How this exchange works</summary><p>Check the item and agree on its condition, price, and a busy public meetup in Akure. Once you both agree, the buyer pays securely through D_clutr. We’ll confirm the payment before the seller hands over the item. After you receive and inspect it, share the six-digit code with the seller to confirm handover. Our team sends seller payouts after one business day. An open dispute can pause a payout. D_clutr is not a licensed escrow service.</p></details>
@@ -139,8 +143,8 @@ export default function ChatPage() {
         </div>}
         <div className="chat-messages" aria-live="polite">{messages.map((message) => <div key={message.id} className={`bubble ${message.mine ? "mine" : ""}`}><small>{message.mine ? "You" : message.senderName} · {new Date(message.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}</small><br />{message.body}</div>)}</div>
         {canShareDetails && <div className="notice">Payment is confirmed. You can now share pickup details here. Keep the rest of your exchange on D_clutr.</div>}
-        <form className="chat-compose" onSubmit={sendMessage}><input value={draft} onChange={(event) => setDraft(event.target.value)} aria-label="Write a message" placeholder={canShareDetails ? "Write a message about pickup or contact details" : "Message the seller (no phone numbers or bank details yet)"} maxLength={2000} /><button aria-label="Send message" type="submit" disabled={busy}><Send size={15} /></button></form>
-        <p style={{ color: "#7b857a", fontSize: 10, padding: "0 14px 12px" }}><ShieldCheck size={13} style={{ verticalAlign: "middle" }} /> Keep messages here. For your safety, phone numbers and bank details are blocked until payment is confirmed. Chats are deleted after 30 days.</p>
+          <form className="chat-compose" onSubmit={sendMessage}><input value={draft} onChange={(event) => setDraft(event.target.value)} aria-label="Write a message" placeholder={canShareDetails ? "Write a message about pickup or contact details" : "Message the seller (no phone numbers or bank details yet)"} maxLength={2000} /><button aria-label="Send message" type="submit" disabled={busy}><Send size={15} /></button></form>
+          <p className="chat-safety-note" style={{ color: "#7b857a", fontSize: 10, padding: "0 14px 12px" }}><ShieldCheck size={13} style={{ verticalAlign: "middle" }} /> Keep messages here. For your safety, phone numbers and bank details are blocked until payment is confirmed. Chats are deleted after 30 days.</p>
       </div>
     </section>}
   </PageShell>;

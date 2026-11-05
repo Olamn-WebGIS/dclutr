@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { ArrowDownRight, ArrowRight, Leaf, Recycle, ShieldCheck, Sparkles } from "lucide-react";
+import { redirect } from "next/navigation";
 import { LiveProductFeed } from "@/components/live-product-feed";
+import { getAuthContext } from "@/lib/server/backend";
 
-export default function HomePage() {
+export default async function HomePage() {
+  if (await getAuthContext()) redirect("/market");
   return (
     <>
       <section className="hero wrap">
