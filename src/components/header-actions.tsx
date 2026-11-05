@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Heart, MessageCircle, Plus, ShoppingBag, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { AccountNavigation } from "@/components/account-navigation";
 
 type HeaderCounts = { unread_messages: number; pending_offers: number; checkout_orders: number };
@@ -20,6 +21,7 @@ function CountLink({ href, label, count, children }: { href: string; label: stri
 
 export function HeaderActions() {
   const [counts, setCounts] = useState(emptyCounts);
+  const pathname = usePathname();
 
   useEffect(() => {
     let active = true;
@@ -59,7 +61,7 @@ export function HeaderActions() {
       <CountLink href="/offers" label="Offers" count={counts.pending_offers}><Tag size={18} strokeWidth={1.7} /></CountLink>
       <CountLink href="/checkout" label="Checkout" count={counts.checkout_orders}><ShoppingBag size={18} strokeWidth={1.7} /></CountLink>
       <AccountNavigation />
-      <Link className="mobile-post-item" href="/sell" aria-label="Post an item" title="Post an item"><Plus size={24} strokeWidth={2} /></Link>
+      {pathname === "/market" && <Link className="mobile-post-item" href="/sell" aria-label="Post an item" title="Post an item"><Plus size={24} strokeWidth={2} /></Link>}
     </div>
   );
 }

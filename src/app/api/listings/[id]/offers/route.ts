@@ -42,10 +42,24 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!auth) throw new BackendError("Sign in to continue.", 401);
     const { id } = await params;
     assertUuid(id);
-    const result = await userFetch<string>("rest/v1/rpc/start_fixed_price_purchase", auth.session, { method: "POST", body: JSON.stringify({ p_listing_id: id, p_actor_id: auth.user.id }) });
+    const conversationPath = `rest/v1/conversations?listing_id=eq.${id}&buyer_id=eq.${auth.user.id}&select=id&limit=1`;
+    const existing = await adminFetch<Array<{ id: string }>>(conversationPath);
+    let result = existing[0]?.id;
+    let createdConversation = false;
+    if (!result) {
+      try {
+        result = await userFetch<string>("rest/v1/rpc/start_fixed_price_purchase", auth.session, { method: "POST", body: JSON.stringify({ p_listing_id: id, p_actor_id: auth.user.id }) });
+        createdConversation = true;
+      } catch (error) {
+        if (!(error instanceof BackendError) || !error.message.includes("conversations_listing_id_buyer_id_key")) throw error;
+        const concurrent = await adminFetch<Array<{ id: string }>>(conversationPath);
+        if (!concurrent[0]) throw new BackendError("A chat for this item already exists. Open your messages to continue.", 409);
+        result = concurrent[0].id;
+      }
+    }
     const orders = await adminFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number; buyer_total_ngn: number; seller_payout_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${result}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn,buyer_total_ngn,seller_payout_ngn`);
     const order = orders[0];
-    if (order) await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "D_clutr purchase request", `The item price is ${formatNaira(order.amount_ngn)}. Your 2% buyer fee is ${formatNaira(order.buyer_fee_ngn)}, bringing your total to ${formatNaira(order.buyer_total_ngn)}. Review the item and agree on the exchange terms with the seller. Once you both agree, you will pay the total through D_clutr.`, `The item price is ${formatNaira(order.amount_ngn)}. D_clutr's 5% seller fee of ${formatNaira(order.seller_fee_ngn)} will be deducted from the sale, leaving an estimated payout of ${formatNaira(order.seller_payout_ngn)}. Open your D_clutr chat to review the purchase request. The buyer is responsible for paying through D_clutr; you do not need to make a payment.`, `order:created:${order.id}`);
-    return json({ ok: true, conversationId: result, message: "The seller conversation is open. Review and accept the exchange terms together." }, 201);
+    if (createdConversation && order) await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "D_clutr purchase request", `The item price is ${formatNaira(order.amount_ngn)}. Your 2% buyer fee is ${formatNaira(order.buyer_fee_ngn)}, bringing your total to ${formatNaira(order.buyer_total_ngn)}. Review the item and agree on the exchange terms with the seller. Once you both agree, you will pay the total through D_clutr.`, `The item price is ${formatNaira(order.amount_ngn)}. D_clutr's 5% seller fee of ${formatNaira(order.seller_fee_ngn)} will be deducted from the sale, leaving an estimated payout of ${formatNaira(order.seller_payout_ngn)}. Open your D_clutr chat to review the purchase request. The buyer is responsible for paying through D_clutr; you do not need to make a payment.`, `order:created:${order.id}`);
+    return json({ ok: true, conversationId: result, message: createdConversation ? "The seller conversation is open. Review and accept the exchange terms together." : "You already have a chat for this item. Opening it now." }, createdConversation ? 201 : 200);
   } catch (error) { return errorResponse(error); }
 }
