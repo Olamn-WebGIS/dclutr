@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     if (profile) {
       const refreshed = await adminFetch<Array<{ session_version: number }>>(`rest/v1/app_accounts?user_id=eq.${account.user_id}&select=session_version`);
       if (refreshed[0]) await saveSession({ id: account.user_id, email: profile.email, sessionVersion: refreshed[0].session_version });
-      try { await queueEmail({ to: profile.email, subject: "Your D_clutr password was changed", text: `Hello ${profile.display_name},\n\nYour D_clutr password has been changed. If you did not make this change, contact the D_clutr administrator immediately.`, dedupeKey: `password-changed:${account.user_id}:${Date.now()}` }); } catch (error) { console.error("Password-change email queued for retry:", error); }
+      try { await queueEmail({ to: profile.email, subject: "Password changed for your D_clutr account", text: `Hello ${profile.display_name},\n\nThe password for your D_clutr account was changed successfully.\n\nIf you did not make this change, contact the D_clutr administrator as soon as possible.`, dedupeKey: `password-changed:${account.user_id}:${Date.now()}` }); } catch (error) { console.error("Password-change email queued for retry:", error); }
     }
     return json({ ok: true, message: "Your password was updated. Sign in with your new password." });
   } catch (error) { return errorResponse(error); }

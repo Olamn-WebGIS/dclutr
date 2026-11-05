@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { ProductGrid } from "@/components/product-grid";
 import { categories, type Product } from "@/data/products";
+import { showToast } from "@/lib/notifications";
 
 export default function MarketPage() {
   const [category, setCategory] = useState("Everything");
@@ -12,7 +13,7 @@ export default function MarketPage() {
   const [sort, setSort] = useState("featured");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     const requestedCategory = new URLSearchParams(window.location.search).get("category");
     if (requestedCategory && categories.includes(requestedCategory)) setCategory(requestedCategory);
@@ -25,7 +26,7 @@ export default function MarketPage() {
         return result.listings as Product[];
       })
       .then(setProducts)
-      .catch(() => setError("We can’t load D_clutr items right now. Please try again in a bit."))
+      .catch(() => { setLoadFailed(true); showToast("We can’t load D_clutr items right now. Please try again in a bit.", "error"); })
       .finally(() => setLoading(false));
   }, []);
   const visibleCategories = categories.filter((item) => item !== "Everything");
@@ -40,7 +41,7 @@ export default function MarketPage() {
     <div className="market-tools"><div className="search-wrap"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search for a mattress, fan, or book" aria-label="Search D_clutr items" /></div><select className="select-control" value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort items"><option value="featured">Sort: Recommended</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>
     <div className="category-row" aria-label="Categories">{visibleCategories.map((item) => <button key={item} className={`category-pill ${category === item ? "active" : ""}`} onClick={() => setCategory(item)}>{item}</button>)}</div>
     <p className="market-count">{filtered.length} {filtered.length === 1 ? "item" : "items"} to browse</p>
-    {loading ? <div className="status-note">Loading D_clutr items…</div> : error ? <div className="status-note error">{error}</div> : filtered.length ? <ProductGrid items={filtered} /> : <div className="empty-state"><h2>No items here yet</h2><p>Try another search or category, or check back later.</p></div>}
+    {loading ? <div className="status-note">Loading D_clutr items…</div> : !loadFailed && filtered.length ? <ProductGrid items={filtered} /> : !loadFailed && <div className="empty-state"><h2>No items here yet</h2><p>Try another search or category, or check back later.</p></div>}
     <div style={{ height: 75 }} />
   </PageShell>;
 }

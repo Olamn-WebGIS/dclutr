@@ -17,9 +17,9 @@ export async function POST(request: Request) {
       await adminFetch(`rest/v1/app_accounts?user_id=eq.${profiles[0].id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ password_reset_hash: resetTokenHash(token), password_reset_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() }) });
       const base = (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");
       try {
-        await queueEmail({ to: email, subject: "Reset your D_clutr password", text: `Hello ${profiles[0].display_name},\n\nUse this one-time link to choose a new D_clutr password. It expires in 30 minutes:\n${base}/reset-password?token=${encodeURIComponent(token)}\n\nD_clutr cannot retrieve or email your current password. If you did not request this, ignore this message.`, dedupeKey: `password-reset:${profiles[0].id}:${resetTokenHash(token).slice(0, 16)}` });
+        await queueEmail({ to: email, subject: "D_clutr password reset instructions", text: `Hello ${profiles[0].display_name},\n\nWe received a request to reset the password for your D_clutr account. To choose a new password, open this link within 30 minutes:\n${base}/reset-password?token=${encodeURIComponent(token)}\n\nYour password will not change unless you use this link. If you did not request a reset, you can ignore this email.`, dedupeKey: `password-reset:${profiles[0].id}:${resetTokenHash(token).slice(0, 16)}` });
       } catch (error) { console.error("Password reset email queued for retry:", error); }
     }
-    return json({ ok: true, message: "If an account exists for that email, a password reset link will be sent." });
+    return json({ ok: true, message: "If an account exists for that email, a reset link has been sent. Check your inbox and spam or junk folder if you don’t see it." });
   } catch (error) { return errorResponse(error); }
 }

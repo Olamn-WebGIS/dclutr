@@ -3,10 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHead, PageShell } from "@/components/page-shell";
+import { showToast } from "@/lib/notifications";
 
 export default function SellPage() {
   const [hasPayoutProfile, setHasPayoutProfile] = useState(false);
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
@@ -23,14 +23,14 @@ export default function SellPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setMessage("");
     try {
       const response = await fetch("/api/listings", { method: "POST", body: new FormData(event.currentTarget) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "We couldn’t post your item. Please check the details and try again.");
+      showToast(data.message, "success");
       router.push(`/product/${data.listing.id}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "We couldn’t post your item. Please check the details and try again.");
+      showToast(error instanceof Error ? error.message : "We couldn’t post your item. Please check the details and try again.", "error");
     } finally {
       setBusy(false);
     }
@@ -46,15 +46,13 @@ export default function SellPage() {
 
       <form className="content-card live-form" onSubmit={submit}>
           <h2>Tell buyers about your item</h2>
-        {message && <div className="notice" role="status">{message}</div>}
-
         <p className="condition-note" style={{ marginTop: 0 }}>
           Add your hostel and pickup point so buyers know where to meet. Once payment is confirmed, you can share more details in chat.
         </p>
 
         <div className="field">
           <label htmlFor="title">What are you selling?</label>
-          <input id="title" name="title" required minLength={4} maxLength={100} placeholder="e.g. Mattress or study lamp" />
+          <input id="title" name="title" required minLength={3} maxLength={100} placeholder="e.g. Mattress or study lamp" />
         </div>
 
         <div className="field-row">
@@ -109,6 +107,11 @@ export default function SellPage() {
           </select>
         </div>
 
+        <div className="field">
+          <label htmlFor="photos">Add 1 to 5 photos</label>
+          <input id="photos" name="photos" type="file" accept="image/*" multiple required />
+        </div>
+
         {!hasPayoutProfile && (
           <>
             <p className="condition-note">For your first post, add the bank details you want us to use for your seller payout. You can update them from your profile later.</p>
@@ -128,11 +131,6 @@ export default function SellPage() {
             </div>
           </>
         )}
-
-        <div className="field">
-          <label htmlFor="photos">Add 1 to 5 photos</label>
-          <input id="photos" name="photos" type="file" accept="image/*" multiple required />
-        </div>
 
         <button className="button button-dark" type="submit" disabled={busy}>
           {busy ? "Posting your item…" : "Post item"}

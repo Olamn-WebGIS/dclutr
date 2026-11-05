@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { BadgeCheck } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { formatNaira } from "@/lib/currency";
+import { showToast } from "@/lib/notifications";
 
 type Verification = { id: string; userId: string; submittedAt: string; displayName: string; email: string; studentIdUrl: string; selfieUrl: string };
 type Dispute = { id: string; order_id: string; listingTitle: string; reason: string; status: string };
@@ -18,9 +19,9 @@ export function AdminDashboard() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [references, setReferences] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
   const [allowed, setAllowed] = useState(false);
+  const message = "";
 
   async function load() {
     const [summaryResponse, verificationResponse, disputeResponse] = await Promise.all([fetch("/api/admin/summary"), fetch("/api/admin/verification"), fetch("/api/disputes")]);
@@ -29,27 +30,27 @@ export function AdminDashboard() {
     if (failure) throw new Error(summary.error || verifyData.error || disputeData.error || "Admin access is required.");
     setAllowed(true); setStats(summary.stats); setPayouts(summary.payouts); setVerifications(verifyData.submissions); setDisputes(disputeData.disputes.filter((item: Dispute) => ["open", "under_review"].includes(item.status)));
   }
-  useEffect(() => { load().catch((error: unknown) => setMessage(error instanceof Error ? error.message : "We couldn’t load the admin dashboard. Please try again.")); }, []);
+  useEffect(() => { load().catch((error: unknown) => showToast(error instanceof Error ? error.message : "We couldn’t load the admin dashboard. Please try again.", "error")); }, []);
 
   async function review(id: string, decision: "approve" | "reject") {
-    setBusy(id); setMessage("");
-    try { const response = await fetch("/api/admin/verification", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, decision, reason: reasons[id] }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setMessage(result.message); await load(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Review failed."); }
+    setBusy(id);
+    try { const response = await fetch("/api/admin/verification", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, decision, reason: reasons[id] }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); showToast(result.message, "success"); await load(); }
+    catch (error) { showToast(error instanceof Error ? error.message : "Review failed.", "error"); }
     finally { setBusy(""); }
   }
 
   async function resolve(event: FormEvent<HTMLFormElement>, dispute: Dispute) {
-    event.preventDefault(); setBusy(dispute.id); setMessage("");
+    event.preventDefault(); setBusy(dispute.id);
     const form = new FormData(event.currentTarget);
-    try { const response = await fetch(`/api/admin/disputes/${dispute.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision: form.get("decision"), response: responses[dispute.id] }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setMessage(result.message); await load(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Dispute update failed."); }
+    try { const response = await fetch(`/api/admin/disputes/${dispute.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision: form.get("decision"), response: responses[dispute.id] }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); showToast(result.message, "success"); await load(); }
+    catch (error) { showToast(error instanceof Error ? error.message : "Dispute update failed.", "error"); }
     finally { setBusy(""); }
   }
 
   async function markPayout(orderId: string) {
-    setBusy(orderId); setMessage("");
-    try { const response = await fetch("/api/admin/payouts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId, transferReference: references[orderId] }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setMessage(result.message); await load(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "We couldn’t save this payout. Check the transfer reference and try again."); }
+    setBusy(orderId);
+    try { const response = await fetch("/api/admin/payouts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId, transferReference: references[orderId] }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); showToast(result.message, "success"); await load(); }
+    catch (error) { showToast(error instanceof Error ? error.message : "We couldn’t save this payout. Check the transfer reference and try again.", "error"); }
     finally { setBusy(""); }
   }
 

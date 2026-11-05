@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Heart, MessageCircle, ShoppingBag } from "lucide-react";
-import { AccountNavigation } from "@/components/account-navigation";
+import { HeaderActions } from "@/components/header-actions";
 
 export function SiteHeader() {
   return (
@@ -13,13 +12,7 @@ export function SiteHeader() {
           <Link href="/market?category=Furniture">Furniture</Link>
           <Link href="/market?category=Home%20appliances">Home appliances</Link>
         </nav>
-        <div className="nav-actions">
-          <Link className="nav-sell" href="/sell">Post an item</Link>
-          <Link className="icon-link" href="/favorites" aria-label="Saved items"><Heart size={18} strokeWidth={1.7} /></Link>
-          <Link className="icon-link" href="/chat" aria-label="Messages"><MessageCircle size={18} strokeWidth={1.7} /></Link>
-          <Link className="icon-link" href="/checkout" aria-label="Bag"><ShoppingBag size={18} strokeWidth={1.7} /></Link>
-          <AccountNavigation />
-        </div>
+        <HeaderActions />
       </div>
     </header>
   );

@@ -40,6 +40,6 @@ export async function POST(request: Request) {
       method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ verification_status: "pending" }),
     });
     await notifyAdmin("D_clutr seller verification submitted", `A FUTA seller verification is ready for review. Student profile ID: ${auth.user.id}. Sign in to the admin dashboard to review the private student ID and selfie.`, `verification-submitted:${submissions[0]?.id}`);
-    return json({ ok: true, message: "Your verification is submitted for admin review." }, 201);
+    return json({ ok: true }, 201);
   } catch (error) { return errorResponse(error); }
 }

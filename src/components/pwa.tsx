@@ -1,7 +1,8 @@
 "use client";
 
-import { Bell, Download, RefreshCw, X } from "lucide-react";
+import { Bell, Download, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { showToast } from "@/lib/notifications";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -13,7 +14,6 @@ export function PwaAppControls() {
   const [isIOS, setIsIOS] = useState(false);
   const [installState, setInstallState] = useState<"loading" | "available" | "installed">("loading");
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported" | "loading">("loading");
-  const [toast, setToast] = useState<string | null>(null);
   const [availableUpdate, setAvailableUpdate] = useState<string | null>(null);
   const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -82,36 +82,30 @@ export function PwaAppControls() {
     };
   }, [installState]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 3200);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
   async function handleInstall() {
     if (installPrompt) {
       installPrompt.prompt();
       const result = await installPrompt.userChoice;
       if (result.outcome === "accepted") {
         setInstallState("installed");
-        setToast("D_clutr was added to your device.");
+        showToast("D_clutr was added to your device.", "success");
       }
-      else setToast("No problem. You can install D_clutr later.");
+      else showToast("No problem. You can install D_clutr later.", "info");
       setInstallPrompt(null);
       return;
     }
 
     if (isIOS) {
-      setToast("Tap the Share button, then Add to Home Screen.");
+      showToast("Tap the Share button, then Add to Home Screen.", "info");
       return;
     }
 
-    setToast("You can’t install D_clutr on this device right now.");
+    showToast("You can’t install D_clutr on this device right now.", "error");
   }
 
   async function handleNotifications() {
     if (!("Notification" in window)) {
-      setToast("This browser doesn’t support notifications. You can still check D_clutr for updates.");
+      showToast("This browser doesn’t support notifications. You can still check D_clutr for updates.", "info");
       return;
     }
 
@@ -121,7 +115,7 @@ export function PwaAppControls() {
         body: "You are now receiving updates on this device.",
         icon: "/icon.svg",
       });
-      setToast("You’ll get updates on this device.");
+      showToast("You’ll get updates on this device.", "success");
       return;
     }
 
@@ -133,11 +127,11 @@ export function PwaAppControls() {
         body: "You are now receiving updates on this device.",
         icon: "/icon.svg",
       });
-      setToast("You’ll get updates on this device.");
+      showToast("You’ll get updates on this device.", "success");
       return;
     }
 
-    setToast("Notifications are off. You can turn them on in your browser settings.");
+    showToast("Notifications are off. You can turn them on in your browser settings.", "error");
   }
 
   function updateApp() {
@@ -161,14 +155,6 @@ export function PwaAppControls() {
           </button>
         </div>
       </div>}
-      {toast && (
-        <div className="pwa-toast" role="status" aria-live="polite">
-          <span>{toast}</span>
-          <button type="button" aria-label="Dismiss notification" onClick={() => setToast(null)}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
       {(notificationPermission !== "granted" && notificationPermission !== "unsupported" && notificationPermission !== "loading" || installState === "available") && <div className="pwa-toolbar">
         {notificationPermission !== "granted" && notificationPermission !== "unsupported" && notificationPermission !== "loading" && <button type="button" className="pwa-action" onClick={handleNotifications} aria-label="Turn on notifications" title="Turn on notifications">
           <Bell size={15} />

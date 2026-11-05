@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const userId = randomUUID();
     await adminFetch("rest/v1/rpc/create_dclutr_account", { method: "POST", body: JSON.stringify({ p_user_id: userId, p_display_name: name, p_email: email, p_password_hash: passwordHash }) });
     await saveSession({ id: userId, email, sessionVersion: 0 });
-    try { await queueEmail({ to: email, subject: "Welcome to D_clutr", text: `Hello ${name},\n\nYour D_clutr account is ready. Protect your password and never share login codes with anyone.\n\nYou can now explore the FUTA student marketplace.`, dedupeKey: `welcome:${userId}` }); } catch (error) { console.error("Welcome email queued for retry:", error); }
+    try { await queueEmail({ to: email, subject: "Your D_clutr account is ready", text: `Hello ${name},\n\nYour D_clutr account has been created. You can now sign in and use the FUTA student marketplace.\n\nFor your security, do not share your password with anyone.`, dedupeKey: `welcome:${userId}` }); } catch (error) { console.error("Welcome email queued for retry:", error); }
     return json({ ok: true, signedIn: true });
   } catch (error) { return errorResponse(error); }
 }

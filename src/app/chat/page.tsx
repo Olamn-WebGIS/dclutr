@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Send, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { formatNaira } from "@/lib/currency";
 import { formatMarketplaceStatus } from "@/lib/marketplace-copy";
+import { showToast } from "@/lib/notifications";
 
-type Conversation = { id: string; listingTitle: string; otherName: string; role: "buyer" | "seller"; priceNgn: number };
+type Conversation = { id: string; listingTitle: string; otherName: string; role: "buyer" | "seller"; priceNgn: number; unreadCount: number };
 type Message = { id: string; body: string; senderName: string; mine: boolean; created_at: string };
 type Order = {
   id: string;
@@ -28,13 +29,12 @@ type Order = {
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState("");
+  const [showConversation, setShowConversation] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [draft, setDraft] = useState("");
   const [deliveryCode, setDeliveryCode] = useState("");
   const [confirmCode, setConfirmCode] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   const loadConversations = useCallback(async () => {
@@ -44,12 +44,15 @@ export default function ChatPage() {
     setConversations(data.conversations);
     if (!activeId) {
       const requested = new URLSearchParams(window.location.search).get("conversation");
-      setActiveId(data.conversations.find((item: Conversation) => item.id === requested)?.id || data.conversations[0]?.id || "");
+      const requestedConversation = data.conversations.find((item: Conversation) => item.id === requested);
+      setActiveId(requestedConversation?.id || data.conversations[0]?.id || "");
+      if (requestedConversation) setShowConversation(true);
     }
   }, [activeId]);
 
   const loadData = useCallback(async () => {
     if (!activeId) return;
+    if (window.matchMedia("(max-width: 650px)").matches && !showConversation) return;
     const [messageResponse, orderResponse] = await Promise.all([fetch(`/api/conversations/${activeId}/messages`), fetch("/api/orders")]);
     const messageData = await messageResponse.json();
     const orderData = await orderResponse.json();
@@ -57,11 +60,13 @@ export default function ChatPage() {
     if (!orderResponse.ok) throw new Error(orderData.error || "We couldn’t load this order. Please try again.");
     setMessages(messageData.messages);
     setOrders(orderData.orders);
-  }, [activeId]);
+    setConversations((current) => current.map((conversation) => conversation.id === activeId ? { ...conversation, unreadCount: 0 } : conversation));
+    window.dispatchEvent(new Event("dclutr:activity-change"));
+  }, [activeId, showConversation]);
 
-  useEffect(() => { loadConversations().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "We couldn’t load your inbox. Please try again.")); }, [loadConversations]);
+  useEffect(() => { loadConversations().catch((cause: unknown) => showToast(cause instanceof Error ? cause.message : "We couldn’t load your inbox. Please try again.", "error")); }, [loadConversations]);
   useEffect(() => {
-    loadData().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "We couldn’t load this chat. Please try again."));
+    loadData().catch((cause: unknown) => showToast(cause instanceof Error ? cause.message : "We couldn’t load this chat. Please try again.", "error"));
     const timer = window.setInterval(() => { loadData().catch(() => undefined); }, 5000);
     return () => window.clearInterval(timer);
   }, [loadData]);
@@ -75,51 +80,49 @@ export default function ChatPage() {
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft.trim() || !activeId) return;
-    setBusy(true); setError(""); setNotice("");
+    setBusy(true);
     try {
       const response = await fetch(`/api/conversations/${activeId}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body: draft }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Your message didn’t send. Please try again.");
       setDraft(""); await loadData();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Your message didn’t send. Please try again."); }
+    } catch (cause) { showToast(cause instanceof Error ? cause.message : "Your message didn’t send. Please try again.", "error"); }
     finally { setBusy(false); }
   }
 
   async function post(url: string, method = "POST", body?: unknown) {
-    setBusy(true); setError(""); setNotice("");
+    setBusy(true);
     try {
       const response = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "We couldn’t update this order. Please try again.");
       if (result.code) setDeliveryCode(result.code);
-      setNotice(result.message || "Your update is saved."); await loadData();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "We couldn’t update this order. Please try again."); }
+      showToast(result.message || "Your update is saved.", "success"); await loadData();
+    } catch (cause) { showToast(cause instanceof Error ? cause.message : "We couldn’t update this order. Please try again.", "error"); }
     finally { setBusy(false); }
   }
 
   async function pay() {
     if (!order) return;
-    setBusy(true); setError(""); setNotice("");
+    setBusy(true);
     try {
       const response = await fetch("/api/payments/initialize", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: order.id }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "We couldn’t start your payment. Please try again.");
       window.location.assign(result.authorizationUrl);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "We couldn’t start your payment. Please try again."); setBusy(false); }
+    } catch (cause) { showToast(cause instanceof Error ? cause.message : "We couldn’t start your payment. Please try again.", "error"); setBusy(false); }
   }
 
   return <PageShell>
-    <PageHead eyebrow="D_CLUTR CHATS" title="Messages." description="Talk through the item, price, and a safe meetup before you pay." />
-    {error && <div className="pwa-toast pwa-toast-error" role="alert" aria-live="assertive"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={() => setError("")}><X size={14} /></button></div>}
-    {notice && <div className="status-note" role="status">{notice}</div>}
-    {!conversations.length ? <div className="content-card"><p>Your chats will show up here after a seller accepts your offer.</p><Link className="button button-dark" href="/offers">See my offers</Link></div> : <section className="chat-layout" aria-label="Your conversations">
-      <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setDeliveryCode(""); setError(""); setNotice(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span></button>)}</aside>
+    <div className="chat-page-head"><PageHead eyebrow="D_CLUTR CHATS" title="Messages." description="Talk through the item, price, and a safe meetup before you pay." /></div>
+    {!conversations.length ? <div className="content-card"><p>Your chats will show up here after a seller accepts your offer.</p><Link className="button button-dark" href="/offers">See my offers</Link></div> : <section className={`chat-layout${showConversation ? " is-conversation-open" : " is-list-open"}`} aria-label="Your conversations">
+      <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setShowConversation(true); setDeliveryCode(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span className="conversation-details"><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span>{conversation.unreadCount > 0 && <span className="chat-unread-badge" aria-label={`${conversation.unreadCount} unread messages`}>{conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}</span>}</button>)}</aside>
       <div className="chat-window">
-        <div className="chat-top">{active?.otherName} <span style={{ color: "#899187", fontWeight: 400 }}>· {active?.listingTitle}</span></div>
+        <div className="chat-top"><button className="chat-back-button" type="button" onClick={() => setShowConversation(false)} aria-label="Back to your chats"><ArrowLeft size={18} /></button><span>{active?.otherName} <span style={{ color: "#899187", fontWeight: 400 }}>· {active?.listingTitle}</span></span></div>
         {order && <div className="content-card" style={{ margin: 12, padding: 16 }}>
           <strong style={{ fontSize: 12 }}>Order update: {formatMarketplaceStatus(order.status)}</strong>
           {isBuyer ? <p style={{ fontSize: 11, color: "#748075" }}>Item: {formatNaira(order.amount_ngn)} · Your 2% buyer fee: {formatNaira(order.buyer_fee_ngn)} · Total you pay: {formatNaira(order.buyer_total_ngn)}. You and the seller both need to agree before payment.</p> : <p style={{ fontSize: 11, color: "#748075" }}>Item: {formatNaira(order.amount_ngn)} · Your 5% seller fee: {formatNaira(order.seller_fee_ngn)} · Your estimated payout: {formatNaira(order.seller_payout_ngn)}. You and the buyer both need to agree before payment.</p>}
-          <details className="info-box"><summary>How this exchange works</summary><p>Check the item and agree on its condition, price, and a busy public meetup in Akure. Once you both agree, the buyer pays securely through D_clutr. We’ll confirm the payment before the seller hands over the item. After you receive and inspect it, share the six-digit code with the seller to confirm handover. Our team sends seller payouts manually after one business day. An open dispute can pause a payout. D_clutr is not a licensed escrow service.</p></details>
+          <details className="info-box"><summary>How this exchange works</summary><p>Check the item and agree on its condition, price, and a busy public meetup in Akure. Once you both agree, the buyer pays securely through D_clutr. We’ll confirm the payment before the seller hands over the item. After you receive and inspect it, share the six-digit code with the seller to confirm handover. Our team sends seller payouts after one business day. An open dispute can pause a payout. D_clutr is not a licensed escrow service.</p></details>
           {order.status === "terms_pending" && order.listing?.status !== "active" && <p className="condition-note">This item is no longer available, so this exchange can’t continue.</p>}
           {order.status === "terms_pending" && order.listing?.status === "active" && <div className="offer-actions"><button className="button button-dark" disabled={busy || Boolean(myTermsAccepted)} onClick={() => post(`/api/orders/${order.id}/terms`)}>{myTermsAccepted ? "You accepted the terms" : "I agree to the exchange terms"}</button><span className="condition-note">Both buyer and seller must agree.</span></div>}
           {order.status === "awaiting_payment" && isBuyer && order.listing?.status === "active" && <button className="button button-dark" disabled={busy} onClick={pay}>Pay {formatNaira(order.buyer_total_ngn)} securely</button>}

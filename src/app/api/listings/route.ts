@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const allowedCategories = new Set(["Campus essentials", "Furniture", "Home appliances"]);
     const allowedConditions = new Set(["Like New", "Good Condition", "Fairly Used", "Used"]);
     const files = form.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
-    if (title.length < 4 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || itemAddress.length < 4 || itemAddress.length > 180 || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > 5) {
+    if (title.length < 3 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || itemAddress.length < 4 || itemAddress.length > 180 || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > 5) {
       throw new BackendError("Add a valid title, description, price, hostel name, exact item address, and 1–5 photos.");
     }
     let payoutDetails: { bankName: string; accountName: string; accountNumber: string } | null = null;

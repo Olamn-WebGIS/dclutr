@@ -6,6 +6,7 @@ import { BadgeCheck, MapPin } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { formatNaira } from "@/lib/currency";
 import { formatMarketplaceStatus } from "@/lib/marketplace-copy";
+import { showToast } from "@/lib/notifications";
 
 type Listing = { id: string; title: string; price_ngn: number; status: string; expires_at: string; negotiable: boolean };
 type Profile = { display_name: string; email: string; role: string; verification_status: string };
@@ -15,7 +16,6 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [payoutProfile, setPayoutProfile] = useState<PayoutProfile | null>(null);
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
   const [savingPayout, setSavingPayout] = useState(false);
   async function load() {
@@ -29,29 +29,28 @@ export default function ProfilePage() {
       if (payoutResponse.ok) setPayoutProfile(await payoutResponse.json());
     } else setPayoutProfile(null);
   }
-  useEffect(() => { load().catch((error: unknown) => setMessage(error instanceof Error ? error.message : "We couldn’t load your profile. Please try again.")); }, []);
+  useEffect(() => { load().catch((error: unknown) => showToast(error instanceof Error ? error.message : "We couldn’t load your profile. Please try again.", "error")); }, []);
   async function removeListing(id: string) {
     if (!window.confirm("Remove this item and its photos? You won’t be able to undo this.")) return;
-    setBusy(id); setMessage("");
-    try { const response = await fetch(`/api/listings/${id}`, { method: "DELETE" }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "We couldn’t remove your item. Please try again."); setMessage(result.message); await load(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "We couldn’t remove your item. Please try again."); }
+    setBusy(id);
+    try { const response = await fetch(`/api/listings/${id}`, { method: "DELETE" }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "We couldn’t remove your item. Please try again."); showToast(result.message, "success"); await load(); }
+    catch (error) { showToast(error instanceof Error ? error.message : "We couldn’t remove your item. Please try again.", "error"); }
     finally { setBusy(""); }
   }
   async function savePayout(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setSavingPayout(true); setMessage("");
+    event.preventDefault(); setSavingPayout(true);
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/payout-profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ bankName: form.get("bankName"), accountName: form.get("accountName"), accountNumber: form.get("accountNumber") }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error || "We couldn’t save your payout details. Please try again.");
-      setMessage(result.message); await load();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "We couldn’t save your payout details. Please try again."); }
+      showToast(result.message, "success"); await load();
+    } catch (error) { showToast(error instanceof Error ? error.message : "We couldn’t save your payout details. Please try again.", "error"); }
     finally { setSavingPayout(false); }
   }
   async function logout() { await fetch("/api/auth/logout", { method: "POST" }); window.dispatchEvent(new Event("dclutr:auth-change")); window.location.href = "/"; }
   return (
     <PageShell>
       <PageHead eyebrow="YOUR D_CLUTR CORNER" title="Your profile." description="Your details, posts, and seller payout info—all in one place." />
-      {message && <div className="status-note" role="status">{message}</div>}
       {profile && (
         <section className="content-card">
           <div className="profile-head">
@@ -59,7 +58,7 @@ export default function ProfilePage() {
             <div>
               <h2 style={{ margin: "0 0 5px" }}>{profile.display_name}</h2>
               <span style={{ color: "#758075", fontSize: 11 }}><MapPin size={12} style={{ verticalAlign: "middle" }} /> FUTA, Akure · {profile.email}</span>
-              <p style={{ color: "#778176", fontSize: 11 }}>{profile.verification_status === "approved" ? <span className="verified-inline"><BadgeCheck size={14} /> Verified FUTA student</span> : `Seller verification: ${profile.verification_status === "rejected" ? "Needs changes" : formatMarketplaceStatus(profile.verification_status)}`}</p>
+              <p style={{ color: profile.verification_status === "not_submitted" || profile.verification_status === "rejected" ? "#b42318" : "#778176", fontSize: 11 }}>{profile.verification_status === "approved" ? <span className="verified-inline"><BadgeCheck size={14} /> Verified FUTA student</span> : `Seller verification: ${profile.verification_status === "rejected" ? "Needs changes" : formatMarketplaceStatus(profile.verification_status)}`}</p>
             </div>
           </div>
           {profile.verification_status !== "approved" && <div className="notice">You can post without verification. Verify your profile if you’d like a badge showing buyers you’re a FUTA student. <Link href="/verify" style={{ fontWeight: 700 }}>Get verified →</Link></div>}

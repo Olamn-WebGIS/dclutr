@@ -10,8 +10,8 @@ async function reportPaymentAfterUnavailableItem(order: PaymentOrder, reason: "c
   const afterCancellation = reason === "cancelled";
   const title = afterCancellation ? "Payment received for a cancelled D_clutr order" : "Payment received for an unavailable D_clutr item";
   const adminText = afterCancellation
-    ? `A payment was confirmed for cancelled order ${order.id}. Total: ${formatNaira(order.buyer_total_ngn)}. Check the transaction and arrange any necessary manual refund. Do not mark the order paid or arrange handover.`
-    : `A payment was confirmed for order ${order.id}, but its item was already sold out. Total: ${formatNaira(order.buyer_total_ngn)}. Check the transaction and arrange any necessary manual refund. Do not mark the order paid or arrange handover.`;
+    ? `A payment was confirmed for cancelled order ${order.id}. Total: ${formatNaira(order.buyer_total_ngn)}. Check the transaction and arrange any necessary refund. Do not mark the order paid or arrange handover.`
+    : `A payment was confirmed for order ${order.id}, but its item was already sold out. Total: ${formatNaira(order.buyer_total_ngn)}. Check the transaction and arrange any necessary refund. Do not mark the order paid or arrange handover.`;
   const participantText = afterCancellation
     ? "We received payment after this order was cancelled. Please don’t arrange handover. Our team will review the payment and contact you about next steps."
     : "We received payment after this item had sold out. Please don’t arrange handover. Our team will review the payment and contact you about next steps.";
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     }
     if (confirmation.result !== "confirmed") throw new BackendError("Order cannot accept payment in its current state.", 409);
     if (order.listing_id) await rejectPendingOffers(order.listing_id);
-    await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "D_clutr payment confirmed", `We’ve confirmed your payment of ${formatNaira(order.buyer_total_ngn)} for your D_clutr order. This includes the item price of ${formatNaira(order.amount_ngn)} and your 2% buyer fee of ${formatNaira(order.buyer_fee_ngn)}. The seller can now arrange handover in your D_clutr chat.`, `We’ve confirmed payment for the D_clutr order. The item price is ${formatNaira(order.amount_ngn)}. Your 5% seller fee is ${formatNaira(order.seller_fee_ngn)}, leaving an estimated payout of ${formatNaira(order.seller_payout_ngn)}. The seller can now arrange handover in the D_clutr chat.`, `payment-confirmed:${order.id}`);
+    await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "D_clutr payment confirmed", `We’ve confirmed your payment of ${formatNaira(order.buyer_total_ngn)} for your D_clutr order. This includes the item price of ${formatNaira(order.amount_ngn)} and your 2% buyer fee of ${formatNaira(order.buyer_fee_ngn)}. The seller can now arrange handover in your D_clutr chat.`, `The buyer’s payment of ${formatNaira(order.buyer_total_ngn)} is confirmed through D_clutr. The item price is ${formatNaira(order.amount_ngn)}. D_clutr's 5% seller fee of ${formatNaira(order.seller_fee_ngn)} is deducted from the sale, leaving an estimated payout of ${formatNaira(order.seller_payout_ngn)}. The buyer has paid; you do not need to make a payment. Please arrange handover in the D_clutr chat.`, `payment-confirmed:${order.id}`);
     return json({ received: true });
   } catch (error) { return errorResponse(error); }
 }

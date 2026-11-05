@@ -3,6 +3,7 @@ import "./globals.css";
 import "./responsive.css";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { PwaAppControls } from "@/components/pwa";
+import { NotificationToasts } from "@/components/notification-toasts";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dclutr.com.ng"),
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
         </div>
         <SiteHeader />
+        <NotificationToasts />
         <main>{children}</main>
         <SiteFooter />
       </body>
