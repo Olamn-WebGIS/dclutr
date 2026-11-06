@@ -30,6 +30,8 @@ type Order = {
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [inboxStatus, setInboxStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [inboxError, setInboxError] = useState("");
   const [activeId, setActiveId] = useState("");
   const [showConversation, setShowConversation] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,17 +43,24 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
 
   const loadConversations = useCallback(async () => {
-    const response = await fetch("/api/conversations");
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Log in to see your messages.");
-    setConversations(data.conversations);
-    if (!activeId) {
+    setInboxStatus("loading");
+    setInboxError("");
+    try {
+      const response = await fetch("/api/conversations");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Log in to see your messages.");
+      setConversations(data.conversations);
+      setInboxStatus("ready");
       const requested = new URLSearchParams(window.location.search).get("conversation");
       const requestedConversation = data.conversations.find((item: Conversation) => item.id === requested);
-      setActiveId(requestedConversation?.id || data.conversations[0]?.id || "");
+      setActiveId((current) => current || requestedConversation?.id || data.conversations[0]?.id || "");
       if (requestedConversation) setShowConversation(true);
+    } catch (cause) {
+      setInboxStatus("error");
+      setInboxError(cause instanceof Error ? cause.message : "We couldn’t load your inbox. Please try again.");
+      throw cause;
     }
-  }, [activeId]);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!activeId) return;
@@ -123,7 +132,7 @@ export default function ChatPage() {
 
   return <PageShell>
     <div className="chat-page-head"><PageHead eyebrow="D_CLUTR CHATS" title="Messages." description="Talk through the item, price, and a safe meetup before you pay." /></div>
-    {!conversations.length ? <div className="content-card"><p>Your chats will show up here after a seller accepts your offer.</p><Link className="button button-dark" href="/offers">See my offers</Link></div> : <section className={`chat-layout${showConversation ? " is-conversation-open" : " is-list-open"}`} aria-label="Your conversations">
+    {inboxStatus === "loading" ? <div className="status-note" role="status" aria-live="polite">Loading your chats…</div> : inboxStatus === "error" ? <div className="status-note error" role="alert"><p>{inboxError}</p><button className="outline-button" type="button" onClick={() => { void loadConversations().catch((cause: unknown) => showToast(cause instanceof Error ? cause.message : "We couldn’t load your inbox. Please try again.", "error")); }}>Try again</button></div> : !conversations.length ? <div className="content-card"><p>Your chats will show up here after a seller accepts your offer.</p><Link className="button button-dark" href="/offers">See my offers</Link></div> : <section className={`chat-layout${showConversation ? " is-conversation-open" : " is-list-open"}`} aria-label="Your conversations">
       <aside className="chat-sidebar"><h2>Your chats</h2>{conversations.map((conversation) => <button type="button" className="conversation" key={conversation.id} onClick={() => { setActiveId(conversation.id); setShowConversation(true); setDeliveryCode(""); setRetryOfferAmount(""); }} style={{ width: "100%", textAlign: "left", background: activeId === conversation.id ? "#edf1e9" : "transparent", border: 0, cursor: "pointer" }}><span className="seller-avatar">{conversation.otherName.slice(0, 2).toUpperCase()}</span><span className="conversation-details"><strong>{conversation.otherName}</strong><p>{conversation.listingTitle}</p></span>{conversation.unreadCount > 0 && <span className="chat-unread-badge" aria-label={`${conversation.unreadCount} unread messages`}>{conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}</span>}</button>)}</aside>
       <div className="chat-window">
         <div className="chat-top"><button className="chat-back-button" type="button" onClick={() => setShowConversation(false)} aria-label="Back to your chats"><ArrowLeft size={18} /></button><span>{active?.otherName} <span style={{ color: "#899187", fontWeight: 400 }}>· {active?.listingTitle}</span></span></div>
