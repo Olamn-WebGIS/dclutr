@@ -1193,3 +1193,16 @@ button {
   flex: 0 0 auto;
   padding: 8px 0;
 }
+
+.email-preferences-card input[type="checkbox"].has-validation-error {
+  outline: 2px solid #c62828;
+  outline-offset: 2px;
+  accent-color: #c62828;
+}
+
+.email-preference-error {
+  margin: 0 0 8px 28px;
+  color: #a5221d;
+  font-size: 12px;
+  line-height: 1.5;
+}

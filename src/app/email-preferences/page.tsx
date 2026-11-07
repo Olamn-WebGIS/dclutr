@@ -15,6 +15,7 @@ export default function EmailPreferencesPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [categoryAlertError, setCategoryAlertError] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [needsLogin, setNeedsLogin] = useState(false);
 
@@ -43,6 +44,13 @@ export default function EmailPreferencesPage() {
   }, []);
 
   async function savePreference(nextSubscribed = subscribed) {
+    if (savedCategories.length > 0 && !categoryAlerts) {
+      setCategoryAlertError(true);
+      setMessage("");
+      return;
+    }
+
+    setCategoryAlertError(false);
     setBusy(true);
     setMessage("");
     try {
@@ -97,9 +105,21 @@ export default function EmailPreferencesPage() {
                 </label>)}
               </fieldset>
               <label className="email-preference-toggle">
-                <input type="checkbox" checked={categoryAlerts} onChange={(event) => setCategoryAlerts(event.target.checked)} disabled={savedCategories.length === 0} />
+                <input
+                  type="checkbox"
+                  checked={categoryAlerts}
+                  onChange={(event) => {
+                    setCategoryAlerts(event.target.checked);
+                    if (event.target.checked) setCategoryAlertError(false);
+                  }}
+                  disabled={savedCategories.length === 0}
+                  aria-invalid={categoryAlertError}
+                  aria-describedby={categoryAlertError ? "category-alert-error" : undefined}
+                  className={categoryAlertError ? "has-validation-error" : undefined}
+                />
                 <span>Send me new-item alerts for these categories.</span>
               </label>
+              {categoryAlertError && <p className="email-preference-error" id="category-alert-error" role="alert">Turn on new-item alerts to save your selected categories.</p>}
               <label className="email-preference-toggle">
                 <input type="checkbox" checked={priceAlerts} onChange={(event) => setPriceAlerts(event.target.checked)} disabled={!subscribed} />
                 <span>Email me when a similar item price is listed for less than an item price I viewed or searched for.</span>
