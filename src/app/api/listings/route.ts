@@ -4,6 +4,7 @@ import { uploadFile } from "@/lib/server/storage";
 import { encryptPrivateValue } from "@/lib/server/secrets";
 import { notifyUser } from "@/lib/server/mailer";
 import { purgeExpiredListings } from "@/lib/server/listing-cleanup";
+import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
 
 const listingSelect = "id,seller_id,title,description,category,condition,price_ngn,negotiable,meetup_area,photo_paths,status,created_at,expires_at,seller:profiles!listings_seller_id_fkey(display_name,verification_status)";
 
@@ -17,6 +18,8 @@ export async function GET(request: Request) {
     if (category && category !== "Everything") filters.push(`category=eq.${encodeURIComponent(category)}`);
     if (term) filters.push(`or=${encodeURIComponent(`(title.ilike.*${term}*,description.ilike.*${term}*)`)}`);
     const rows = await adminFetch<Array<Record<string, unknown> & { id: string; seller: { display_name: string; verification_status: string }; photo_paths: string[] }>>(`rest/v1/listings?${filters.join("&")}`);
+    const auth = await getAuthContext();
+    if (auth) await recordMarketplaceEventSafely({ userId: auth.user.id, event: "market_visit" });
     return json({ listings: rows.map((row) => ({
       ...row,
       name: row.title,
@@ -88,7 +91,10 @@ export async function POST(request: Request) {
     });
     if (payoutDetails) await adminFetch("rest/v1/seller_payout_profiles?on_conflict=user_id", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ user_id: auth.user.id, encrypted_details: encryptPrivateValue(JSON.stringify(payoutDetails)), account_last4: payoutDetails.accountNumber.slice(-4) }) });
     if (payoutDetails) await notifyUser(auth.user.id, "Payout details saved on D_clutr", `Your first listing was published and an encrypted seller payout account ending in ${payoutDetails.accountNumber.slice(-4)} was saved. You can review or update it from your profile.`, `payout-account-created:${auth.user.id}`);
-    if (rows[0]) await notifyUser(auth.user.id, "Your D_clutr listing is live", `“${title}” is now live in the FUTA marketplace. It expires in seven days if unsold. When it expires, it is removed and you can create a fresh listing from your profile.`, `listing-created:${rows[0].id}`);
+    if (rows[0]) {
+      await recordMarketplaceEventSafely({ userId: auth.user.id, event: "listing_created", entityId: rows[0].id });
+      await notifyUser(auth.user.id, "Your D_clutr listing is live", `“${title}” is now live in the FUTA marketplace. It expires in seven days if unsold. When it expires, it is removed and you can create a fresh listing from your profile.`, `listing-created:${rows[0].id}`);
+    }
     return json({ ok: true, listing: rows[0], message: "Your listing is live for seven days." }, 201);
   } catch (error) { return errorResponse(error); }
 }

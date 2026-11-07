@@ -2,6 +2,7 @@ import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetc
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { formatNaira } from "@/lib/currency";
 import { notifyOrderParticipantsByRole, notifyUser } from "@/lib/server/mailer";
+import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,6 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (decision !== "accept") throw new BackendError("Choose accept or reject.");
     const conversationId = await userFetch<string>("rest/v1/rpc/accept_offer", auth.session, { method: "POST", body: JSON.stringify({ p_offer_id: id, p_actor_id: auth.user.id }) });
+    await recordMarketplaceEventSafely({ userId: auth.user.id, event: "first_conversation", entityId: conversationId });
     const orders = await userFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number; buyer_total_ngn: number; seller_payout_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${conversationId}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn,buyer_total_ngn,seller_payout_ngn`, auth.session);
     const order = orders[0];
     if (order) await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "Your D_clutr offer was accepted", `Your offer for “${title}” was accepted at ${formatNaira(order.amount_ngn)}. Your 2% buyer fee is ${formatNaira(order.buyer_fee_ngn)}, bringing your total to ${formatNaira(order.buyer_total_ngn)}. Open your chat to agree on the exchange terms. Once you both agree, you will pay the total through D_clutr.`, `Your offer for “${title}” was accepted at ${formatNaira(order.amount_ngn)}. D_clutr's 5% seller fee of ${formatNaira(order.seller_fee_ngn)} will be deducted from the sale, leaving an estimated payout of ${formatNaira(order.seller_payout_ngn)}. Open your chat to agree on the exchange terms. Once you both agree, the buyer will pay through D_clutr; you do not need to make a payment.`, `offer:accepted:${id}`);

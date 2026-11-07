@@ -3,6 +3,7 @@ import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { notifyUser, notifyOrderParticipantsByRole } from "@/lib/server/mailer";
 import { formatNaira } from "@/lib/currency";
 import { checkRateLimit } from "@/lib/server/password-auth";
+import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -66,6 +67,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
     const orders = await adminFetch<Array<{ id: string; buyer_id: string; seller_id: string; amount_ngn: number; buyer_fee_ngn: number; seller_fee_ngn: number; buyer_total_ngn: number; seller_payout_ngn: number }>>(`rest/v1/orders?conversation_id=eq.${result}&select=id,buyer_id,seller_id,amount_ngn,buyer_fee_ngn,seller_fee_ngn,buyer_total_ngn,seller_payout_ngn`);
     const order = orders[0];
+    if (createdConversation && order) await recordMarketplaceEventSafely({ userId: auth.user.id, event: "first_conversation", entityId: result });
     if ((createdConversation || reopenedOrder) && order) await notifyOrderParticipantsByRole(order.buyer_id, order.seller_id, "D_clutr purchase request", `The item price is ${formatNaira(order.amount_ngn)}. Your 2% buyer fee is ${formatNaira(order.buyer_fee_ngn)}, bringing your total to ${formatNaira(order.buyer_total_ngn)}. Review the item and agree on the exchange terms with the seller. Once you both agree, you will pay the total through D_clutr.`, `The item price is ${formatNaira(order.amount_ngn)}. D_clutr's 5% seller fee of ${formatNaira(order.seller_fee_ngn)} will be deducted from the sale, leaving an estimated payout of ${formatNaira(order.seller_payout_ngn)}. Open your D_clutr chat to review the purchase request. The buyer is responsible for paying through D_clutr; you do not need to make a payment.`, `order:created:${order.id}:${Date.now()}`);
     return json({ ok: true, conversationId: result, message: createdConversation ? "The seller conversation is open. Review and accept the exchange terms together." : reopenedOrder ? "The cancelled order is open again in this chat." : "You already have a chat for this item. Opening it now." }, createdConversation || reopenedOrder ? 201 : 200);
   } catch (error) { return errorResponse(error); }

@@ -35,6 +35,7 @@ export function SiteFooter() {
         <div className="footer-col">
           <strong>Your account</strong>
           <Link href="/profile">Profile</Link>
+          <Link href="/email-preferences">Email preferences</Link>
           <Link href="/favorites">Saved items</Link>
           <Link href="/offers">Offers</Link>
           <Link href="/chat">Messages</Link>

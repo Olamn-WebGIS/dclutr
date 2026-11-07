@@ -4,6 +4,7 @@ import { assertSameOrigin } from "@/lib/server/security";
 import { deleteStorageObject } from "@/lib/server/storage";
 import { notifyUser } from "@/lib/server/mailer";
 import { purgeExpiredListings } from "@/lib/server/listing-cleanup";
+import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,6 +17,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const listing = rows[0];
     if (!listing) throw new BackendError("This listing has expired or is no longer available.", 404);
     const auth = await getAuthContext();
+    if (auth && listing.status === "active" && listing.seller_id !== auth.user.id) {
+      await recordMarketplaceEventSafely({ userId: auth.user.id, event: "market_visit" });
+      await recordMarketplaceEventSafely({ userId: auth.user.id, event: "listing_view", entityId: id });
+    }
     const myOffers = auth ? await adminFetch<Array<{ status: string; amount_ngn: number }>>(
       `rest/v1/offers?listing_id=eq.${id}&buyer_id=eq.${auth.user.id}&status=in.(pending,rejected,accepted)&select=status,amount_ngn&order=created_at.desc,id.desc&limit=3`,
     ) : [];

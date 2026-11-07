@@ -2,5 +2,23 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/marketing-email",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/category-alerts",
+      "schedule": "10 8 * * *"
+    },
+    {
+      "path": "/api/cron/listing-expiry-reminders",
+      "schedule": "20 8 * * *"
+    },
+    {
+      "path": "/api/cron/price-alerts",
+      "schedule": "30 8 * * *"
+    }
+  ]
 }

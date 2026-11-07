@@ -3,7 +3,7 @@ import tls from "node:tls";
 import { BackendError, adminFetch } from "@/lib/server/backend";
 import { decryptPrivateValue, encryptPrivateValue } from "@/lib/server/secrets";
 
-type SmtpMessage = { to: string; subject: string; text: string };
+type SmtpMessage = { to: string; subject: string; text: string; unsubscribeUrl?: string };
 type SmtpConfig = { host: string; port: number; username: string; password: string; from: string };
 
 function smtpConfig(): SmtpConfig | null {
@@ -21,11 +21,28 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+function emailParagraph(value: string) {
+  const urlPattern = /https?:\/\/[^\s<>]+/g;
+  let html = "";
+  let cursor = 0;
+  for (const match of value.matchAll(urlPattern)) {
+    const index = match.index ?? 0;
+    const rawUrl = match[0];
+    const trailing = rawUrl.match(/[),.!?]+$/)?.[0] ?? "";
+    const href = trailing ? rawUrl.slice(0, -trailing.length) : rawUrl;
+    html += `${escapeHtml(value.slice(cursor, index))}<a href="${escapeHtml(href)}" style="color:#244b39;">${escapeHtml(href)}</a>${escapeHtml(trailing)}`;
+    cursor = index + rawUrl.length;
+  }
+  html += escapeHtml(value.slice(cursor));
+  return html.replace(/\n/g, "<br>");
+}
+
 function brandedEmailHtml(message: SmtpMessage) {
   const paragraphs = message.text.trim().split(/\n{2,}/).map((paragraph) =>
-    `<p style="margin:0 0 16px;color:#405347;font-size:15px;line-height:1.7;">${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`,
+    `<p style="margin:0 0 16px;color:#405347;font-size:15px;line-height:1.7;">${emailParagraph(paragraph)}</p>`,
   ).join("");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f8f7f1;color:#203b2e;font-family:Arial,Helvetica,sans-serif;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8f7f1;padding:32px 12px;"><tr><td align="center"><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#fffefa;border:1px solid #e6e7dc;border-radius:6px;overflow:hidden;"><tr><td style="padding:24px 30px;background:#244b39;color:#fffefa;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:bold;">D_clutr<span style="color:#a8bda8;">.</span></div><div style="margin-top:5px;color:#dce7d9;font-size:12px;">Made for FUTA students in Akure</div></td></tr><tr><td style="padding:30px;"><h1 style="margin:0 0 22px;color:#203b2e;font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:normal;line-height:1.3;">${escapeHtml(message.subject)}</h1>${paragraphs}</td></tr><tr><td style="padding:20px 30px;background:#edf1e9;color:#526357;font-size:12px;line-height:1.7;"><p style="margin:0 0 6px;">Need a hand? Email <a href="mailto:admin@dclutr.com.ng" style="color:#244b39;font-weight:bold;">admin@dclutr.com.ng</a>.</p><p style="margin:0;">D_clutr · A student marketplace for FUTA, Akure</p></td></tr></table></td></tr></table></body></html>`;
+  const unsubscribe = message.unsubscribeUrl ? `<p style="margin:8px 0 0;">To stop these marketplace reminders, <a href="${escapeHtml(message.unsubscribeUrl)}" style="color:#244b39;">unsubscribe here</a>.</p>` : "";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f8f7f1;color:#203b2e;font-family:Arial,Helvetica,sans-serif;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8f7f1;padding:32px 12px;"><tr><td align="center"><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#fffefa;border:1px solid #e6e7dc;border-radius:6px;overflow:hidden;"><tr><td style="padding:24px 30px;background:#244b39;color:#fffefa;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:bold;">D_clutr<span style="color:#a8bda8;">.</span></div><div style="margin-top:5px;color:#dce7d9;font-size:12px;">Made for FUTA students in Akure</div></td></tr><tr><td style="padding:30px;"><h1 style="margin:0 0 22px;color:#203b2e;font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:normal;line-height:1.3;">${escapeHtml(message.subject)}</h1>${paragraphs}</td></tr><tr><td style="padding:20px 30px;background:#edf1e9;color:#526357;font-size:12px;line-height:1.7;"><p style="margin:0 0 6px;">Need a hand? Email <a href="mailto:admin@dclutr.com.ng" style="color:#244b39;font-weight:bold;">admin@dclutr.com.ng</a>.</p><p style="margin:0;">D_clutr · A student marketplace for FUTA, Akure</p>${unsubscribe}</td></tr></table></td></tr></table></body></html>`;
 }
 
 async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
@@ -81,6 +98,7 @@ async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
           `Subject: ${encodeSubject(message.subject)}`,
           `Date: ${new Date().toUTCString()}`,
           `Message-ID: <${crypto.randomUUID()}@dclutr.local>`,
+          ...(message.unsubscribeUrl ? [`List-Unsubscribe: <${safeHeader(message.unsubscribeUrl)}>`, "List-Unsubscribe-Post: List-Unsubscribe=One-Click"] : []),
           "MIME-Version: 1.0",
           `Content-Type: multipart/alternative; boundary="${boundary}"`,
           "",
@@ -106,23 +124,40 @@ async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
   });
 }
 
-export async function queueEmail({ to, subject, text, dedupeKey }: SmtpMessage & { dedupeKey: string }) {
+export async function queueEmail({ to, subject, text, dedupeKey, unsubscribeUrl, deferDelivery = false, requiresCategoryAlertConsent = false, requiresPriceAlertConsent = false }: SmtpMessage & { dedupeKey: string; deferDelivery?: boolean; requiresCategoryAlertConsent?: boolean; requiresPriceAlertConsent?: boolean }) {
   const email = to.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BackendError("Notification email address is invalid.", 400);
-  const existing = await adminFetch<Array<{ id: string; status: string }>>("rest/v1/email_outbox?select=id,status", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=representation" }, body: JSON.stringify({ dedupe_key: dedupeKey, recipient: email, subject: subject.slice(0, 250), body_text: encryptPrivateValue(text), body_encrypted: true }) });
+  const existing = await adminFetch<Array<{ id: string; status: string }>>("rest/v1/email_outbox?select=id,status", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=representation" }, body: JSON.stringify({ dedupe_key: dedupeKey, recipient: email, subject: subject.slice(0, 250), body_text: encryptPrivateValue(text), body_encrypted: true, unsubscribe_url: unsubscribeUrl ? encryptPrivateValue(unsubscribeUrl) : null, requires_category_alert_consent: requiresCategoryAlertConsent, requires_price_alert_consent: requiresPriceAlertConsent }) });
   const item = existing[0];
   if (!item || item.status === "sent") return;
-  await deliverQueuedEmail(item.id);
+  if (!deferDelivery) await deliverQueuedEmail(item.id);
 }
 
 export async function deliverQueuedEmail(id: string) {
   const config = smtpConfig();
   if (!config) return false;
-  const rows = await adminFetch<Array<{ id: string; recipient: string; subject: string; body_text: string; body_encrypted: boolean; attempts: number }>>(`rest/v1/email_outbox?id=eq.${id}&status=eq.queued&select=id,recipient,subject,body_text,body_encrypted,attempts`);
+  const rows = await adminFetch<Array<{ id: string; recipient: string; subject: string; body_text: string; body_encrypted: boolean; unsubscribe_url: string | null; requires_category_alert_consent: boolean; requires_price_alert_consent: boolean; attempts: number }>>(`rest/v1/email_outbox?id=eq.${id}&status=eq.queued&select=id,recipient,subject,body_text,body_encrypted,unsubscribe_url,requires_category_alert_consent,requires_price_alert_consent,attempts`);
   const item = rows[0];
   if (!item) return false;
   try {
-    await sendSmtp({ to: item.recipient, subject: item.subject, text: item.body_encrypted ? decryptPrivateValue(item.body_text) : item.body_text }, config);
+    if (item.unsubscribe_url) {
+      const unsubscribeUrl = decryptPrivateValue(item.unsubscribe_url);
+      const params = new URL(unsubscribeUrl).searchParams;
+      const preferences = await adminFetch<Array<{ is_subscribed: boolean; category_alerts_enabled: boolean; price_alerts_enabled: boolean }>>(`rest/v1/email_marketing_preferences?user_id=eq.${encodeURIComponent(params.get("user") || "")}&select=is_subscribed,category_alerts_enabled,price_alerts_enabled`);
+      if (!preferences[0]?.is_subscribed
+        || (item.requires_category_alert_consent && !preferences[0].category_alerts_enabled)
+        || (item.requires_price_alert_consent && !preferences[0].price_alerts_enabled)) {
+        await adminFetch(`rest/v1/email_outbox?id=eq.${id}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ status: "failed", last_error: "Recipient unsubscribed before delivery." }),
+        });
+        return false;
+      }
+      await sendSmtp({ to: item.recipient, subject: item.subject, text: item.body_encrypted ? decryptPrivateValue(item.body_text) : item.body_text, unsubscribeUrl }, config);
+    } else {
+      await sendSmtp({ to: item.recipient, subject: item.subject, text: item.body_encrypted ? decryptPrivateValue(item.body_text) : item.body_text }, config);
+    }
     await adminFetch(`rest/v1/email_outbox?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "sent", attempts: item.attempts + 1, sent_at: new Date().toISOString(), last_error: null }) });
     return true;
   } catch (error) {
