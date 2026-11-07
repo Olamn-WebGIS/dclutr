@@ -9,6 +9,7 @@ import { showToast } from "@/lib/notifications";
 export default function ResetPasswordPage() {
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   useEffect(() => {
     const resetToken = new URLSearchParams(window.location.search).get("token") || "";
@@ -25,5 +26,5 @@ export default function ResetPasswordPage() {
     } catch (error) { showToast(error instanceof Error ? error.message : "We couldn’t update your password. Please try again.", "error"); }
     finally { setBusy(false); }
   }
-  return <PageShell><div className="auth-wrap"><form className="auth-card" onSubmit={submit}><span className="eyebrow">ACCOUNT SECURITY</span><h1>Choose a new password.</h1><p>Your reset link works once and expires after 30 minutes.</p><div className="field"><label htmlFor="password">New password</label><input id="password" name="password" type="password" minLength={12} maxLength={128} required disabled={!token} autoComplete="new-password" placeholder="At least 12 characters" /></div><button className="button button-dark" disabled={busy || !token}>{busy ? "Updating…" : "Save new password"}</button><p className="form-toggle"><Link href="/auth">Back to sign in</Link></p></form></div></PageShell>;
+  return <PageShell><div className="auth-wrap"><form className="auth-card" onSubmit={submit}><span className="eyebrow">ACCOUNT SECURITY</span><h1>Choose a new password.</h1><p>Your reset link works once and expires after 30 minutes.</p><div className="field"><label htmlFor="password">New password</label><div className="password-input-wrap"><input id="password" name="password" type={showPassword ? "text" : "password"} minLength={6} maxLength={128} required disabled={!token} autoComplete="new-password" placeholder="At least 6 characters" /><button type="button" className="text-link password-visibility-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>{showPassword ? "Hide" : "Show"}</button></div></div><button className="button button-dark" disabled={busy || !token}>{busy ? "Updating…" : "Save new password"}</button><p className="form-toggle"><Link href="/auth">Back to sign in</Link></p></form></div></PageShell>;
 }

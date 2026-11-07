@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     assertSameOrigin(request);
     const { token, password } = await request.json() as { token?: string; password?: string };
-    if (!token || token.length < 30 || token.length > 200 || !password || password.length < 12 || password.length > 128) throw new BackendError("Use a valid reset link and a password between 12 and 128 characters.");
+    if (!token || token.length < 30 || token.length > 200 || !password || password.length < 6 || password.length > 128) throw new BackendError("Use a valid reset link and a password between 6 and 128 characters.");
     if (!await checkRateLimit("reset-password-ip", request, 10, 3600)) throw new BackendError("Too many reset attempts. Try again later.", 429);
     if (!await checkRateLimit(`reset-token:${resetTokenHash(token)}`, request, 6, 1800)) throw new BackendError("Too many attempts for this reset link.", 429);
     const hash = resetTokenHash(token);

@@ -10,8 +10,8 @@ export async function POST(request: Request) {
     const body = await request.json() as { name?: string; email?: string; password?: string; marketingConsent?: boolean; priceAlertConsent?: boolean };
     const name = body.name?.trim().replace(/\s+/g, " ");
     const email = body.email?.trim().toLowerCase();
-    if (!name || name.length < 2 || name.length > 80 || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !body.password || body.password.length < 12 || body.password.length > 128) {
-      throw new BackendError("Enter your name, a valid email address, and a password between 12 and 128 characters.", 400);
+    if (!name || name.length < 2 || name.length > 80 || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !body.password || body.password.length < 6 || body.password.length > 128) {
+      throw new BackendError("Enter your name, a valid email address, and a password between 6 and 128 characters.", 400);
     }
     await allowAuthAttempt(email, request, 5);
     if (!await checkRateLimit("signup-ip", request, 10, 3600)) throw new BackendError("Too many account creations from this connection. Try again later.", 429);

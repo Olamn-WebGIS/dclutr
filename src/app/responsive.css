@@ -1175,3 +1175,21 @@ button {
   accent-color: var(--forest);
   cursor: pointer;
 }
+
+.password-input-wrap {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.password-input-wrap input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.password-visibility-toggle {
+  flex: 0 0 auto;
+  padding: 8px 0;
+}
