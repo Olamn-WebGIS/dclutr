@@ -1101,3 +1101,60 @@ button {
     margin-inline: auto;
   }
 }
+
+.email-preferences-card > p {
+  line-height: 1.6;
+}
+
+.email-preference-toggle,
+.email-category-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.email-preference-toggle {
+  padding: 10px 0;
+}
+
+.email-preferences-categories {
+  margin: 14px 0;
+  padding: 0;
+  border: 0;
+}
+
+.email-preferences-categories legend {
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.email-preferences-categories .condition-note {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.email-category-option {
+  min-height: 42px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.email-preferences-card input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 2px 0 0;
+  accent-color: var(--forest);
+  cursor: pointer;
+}
+
+.email-category-option input[type="checkbox"] {
+  margin-top: 0;
+}
+
+.email-preferences-card input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}

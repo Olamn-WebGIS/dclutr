@@ -71,29 +71,29 @@ export default function EmailPreferencesPage() {
   return (
     <PageShell>
       <div className="auth-wrap">
-        <section className="auth-card" aria-labelledby="email-preferences-title">
+        <section className="auth-card email-preferences-card" aria-labelledby="email-preferences-title">
           <span className="eyebrow">YOUR INBOX, YOUR CHOICE</span>
           <h1 id="email-preferences-title">Email preferences.</h1>
           <p>Choose whether D_clutr can email marketplace reminders and new-item alerts for categories you care about.</p>
           {loading ? <p role="status">Loading your preferences…</p> : loadError ? <p role="alert">{loadError}{needsLogin && <> <Link href="/auth">Sign in</Link>.</>}</p> : (
             <>
-              <label className="field" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <label className="email-preference-toggle">
                 <input type="checkbox" checked={subscribed} onChange={(event) => { setSubscribed(event.target.checked); if (!event.target.checked) { setCategoryAlerts(false); setPriceAlerts(false); } }} />
                 <span>Send me optional D_clutr marketplace emails. I can unsubscribe at any time.</span>
               </label>
-              <fieldset className="field" style={{ border: 0, padding: 0, marginTop: 18 }}>
-                <legend style={{ fontWeight: 700, marginBottom: 8 }}>Saved categories for new-item alerts</legend>
+              <fieldset className="email-preferences-categories">
+                <legend>Saved categories for new-item alerts</legend>
                 <p className="condition-note">Get a daily digest when new items are posted in selected categories. These alerts require marketplace email consent.</p>
-                {categories.map((category) => <label key={category} style={{ display: "flex", alignItems: "center", gap: 10, margin: "10px 0" }}>
+                {categories.map((category) => <label className="email-category-option" key={category}>
                   <input type="checkbox" checked={savedCategories.includes(category)} onChange={() => toggleCategory(category)} />
                   {category}
                 </label>)}
               </fieldset>
-              <label className="field" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <label className="email-preference-toggle">
                 <input type="checkbox" checked={categoryAlerts} onChange={(event) => setCategoryAlerts(event.target.checked)} disabled={savedCategories.length === 0} />
                 <span>Send me new-item alerts for these categories.</span>
               </label>
-              <label className="field" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <label className="email-preference-toggle">
                 <input type="checkbox" checked={priceAlerts} onChange={(event) => setPriceAlerts(event.target.checked)} disabled={!subscribed} />
                 <span>Send me a daily digest when a new similar item is listed for less than an item I searched for or viewed. Searches and views are used for matching; saved interests expire after 30 days.</span>
               </label>
