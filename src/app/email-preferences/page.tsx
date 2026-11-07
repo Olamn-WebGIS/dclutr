@@ -86,7 +86,7 @@ export default function EmailPreferencesPage() {
               </label>
               <label className="email-preference-toggle">
                 <input type="checkbox" checked={lifecycleReminders} onChange={(event) => setLifecycleReminders(event.target.checked)} disabled={!subscribed} />
-                <span>Send me one useful D_clutr marketplace reminder every seven days.</span>
+                <span>Send me D_clutr marketplace reminder.</span>
               </label>
               <fieldset className="email-preferences-categories">
                 <legend>Saved categories for new-item alerts</legend>
@@ -102,7 +102,7 @@ export default function EmailPreferencesPage() {
               </label>
               <label className="email-preference-toggle">
                 <input type="checkbox" checked={priceAlerts} onChange={(event) => setPriceAlerts(event.target.checked)} disabled={!subscribed} />
-                <span>Email me when a similar item is listed for less than an item I viewed or searched for.</span>
+                <span>Email me when a similar item price is listed for less than an item price I viewed or searched for.</span>
               </label>
               <button className="button button-dark" type="button" disabled={busy} onClick={() => savePreference()}>
                 {busy ? "Saving…" : "Save email preferences"}
