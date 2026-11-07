@@ -1158,3 +1158,20 @@ button {
 .email-preferences-card input[type="checkbox"]:disabled {
   cursor: not-allowed;
 }
+
+.signup-marketing-consent label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.signup-marketing-consent input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 2px 0 0;
+  accent-color: var(--forest);
+  cursor: pointer;
+}

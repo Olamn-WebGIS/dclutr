@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     await adminFetch(`rest/v1/email_marketing_preferences?user_id=eq.${userId}&is_subscribed=eq.true`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ is_subscribed: false, category_alerts_enabled: false, price_alerts_enabled: false, unsubscribed_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
+      body: JSON.stringify({ is_subscribed: false, lifecycle_emails_enabled: false, category_alerts_enabled: false, price_alerts_enabled: false, unsubscribed_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
     });
     return new Response("<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Email preferences · D_clutr</title><body style=\"margin:0;padding:40px 16px;background:#f8f7f1;color:#203b2e;font:16px Arial,sans-serif\"><main style=\"max-width:520px;margin:10vh auto;padding:32px;background:#fffefa;border:1px solid #e6e7dc\"><h1 style=\"font:normal 30px Georgia,serif\">You’re unsubscribed.</h1><p>You won’t receive D_clutr marketplace reminder emails. Account and order emails may still be sent.</p></main></body></html>", { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
   } catch (error) { return errorResponse(error); }

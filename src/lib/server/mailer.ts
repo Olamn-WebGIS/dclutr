@@ -124,10 +124,10 @@ async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
   });
 }
 
-export async function queueEmail({ to, subject, text, dedupeKey, unsubscribeUrl, deferDelivery = false, requiresCategoryAlertConsent = false, requiresPriceAlertConsent = false }: SmtpMessage & { dedupeKey: string; deferDelivery?: boolean; requiresCategoryAlertConsent?: boolean; requiresPriceAlertConsent?: boolean }) {
+export async function queueEmail({ to, subject, text, dedupeKey, unsubscribeUrl, deferDelivery = false, requiresCategoryAlertConsent = false, requiresPriceAlertConsent = false, requiresLifecycleConsent = false }: SmtpMessage & { dedupeKey: string; deferDelivery?: boolean; requiresCategoryAlertConsent?: boolean; requiresPriceAlertConsent?: boolean; requiresLifecycleConsent?: boolean }) {
   const email = to.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BackendError("Notification email address is invalid.", 400);
-  const existing = await adminFetch<Array<{ id: string; status: string }>>("rest/v1/email_outbox?select=id,status", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=representation" }, body: JSON.stringify({ dedupe_key: dedupeKey, recipient: email, subject: subject.slice(0, 250), body_text: encryptPrivateValue(text), body_encrypted: true, unsubscribe_url: unsubscribeUrl ? encryptPrivateValue(unsubscribeUrl) : null, requires_category_alert_consent: requiresCategoryAlertConsent, requires_price_alert_consent: requiresPriceAlertConsent }) });
+  const existing = await adminFetch<Array<{ id: string; status: string }>>("rest/v1/email_outbox?select=id,status", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=representation" }, body: JSON.stringify({ dedupe_key: dedupeKey, recipient: email, subject: subject.slice(0, 250), body_text: encryptPrivateValue(text), body_encrypted: true, unsubscribe_url: unsubscribeUrl ? encryptPrivateValue(unsubscribeUrl) : null, requires_category_alert_consent: requiresCategoryAlertConsent, requires_price_alert_consent: requiresPriceAlertConsent, requires_lifecycle_consent: requiresLifecycleConsent }) });
   const item = existing[0];
   if (!item || item.status === "sent") return;
   if (!deferDelivery) await deliverQueuedEmail(item.id);
@@ -136,17 +136,18 @@ export async function queueEmail({ to, subject, text, dedupeKey, unsubscribeUrl,
 export async function deliverQueuedEmail(id: string) {
   const config = smtpConfig();
   if (!config) return false;
-  const rows = await adminFetch<Array<{ id: string; recipient: string; subject: string; body_text: string; body_encrypted: boolean; unsubscribe_url: string | null; requires_category_alert_consent: boolean; requires_price_alert_consent: boolean; attempts: number }>>(`rest/v1/email_outbox?id=eq.${id}&status=eq.queued&select=id,recipient,subject,body_text,body_encrypted,unsubscribe_url,requires_category_alert_consent,requires_price_alert_consent,attempts`);
+  const rows = await adminFetch<Array<{ id: string; recipient: string; subject: string; body_text: string; body_encrypted: boolean; unsubscribe_url: string | null; requires_category_alert_consent: boolean; requires_price_alert_consent: boolean; requires_lifecycle_consent: boolean; attempts: number }>>(`rest/v1/email_outbox?id=eq.${id}&status=eq.queued&select=id,recipient,subject,body_text,body_encrypted,unsubscribe_url,requires_category_alert_consent,requires_price_alert_consent,requires_lifecycle_consent,attempts`);
   const item = rows[0];
   if (!item) return false;
   try {
     if (item.unsubscribe_url) {
       const unsubscribeUrl = decryptPrivateValue(item.unsubscribe_url);
       const params = new URL(unsubscribeUrl).searchParams;
-      const preferences = await adminFetch<Array<{ is_subscribed: boolean; category_alerts_enabled: boolean; price_alerts_enabled: boolean }>>(`rest/v1/email_marketing_preferences?user_id=eq.${encodeURIComponent(params.get("user") || "")}&select=is_subscribed,category_alerts_enabled,price_alerts_enabled`);
+      const preferences = await adminFetch<Array<{ is_subscribed: boolean; category_alerts_enabled: boolean; price_alerts_enabled: boolean; lifecycle_emails_enabled: boolean }>>(`rest/v1/email_marketing_preferences?user_id=eq.${encodeURIComponent(params.get("user") || "")}&select=is_subscribed,category_alerts_enabled,price_alerts_enabled,lifecycle_emails_enabled`);
       if (!preferences[0]?.is_subscribed
         || (item.requires_category_alert_consent && !preferences[0].category_alerts_enabled)
-        || (item.requires_price_alert_consent && !preferences[0].price_alerts_enabled)) {
+        || (item.requires_price_alert_consent && !preferences[0].price_alerts_enabled)
+        || (item.requires_lifecycle_consent && !preferences[0].lifecycle_emails_enabled)) {
         await adminFetch(`rest/v1/email_outbox?id=eq.${id}`, {
           method: "PATCH",
           headers: { Prefer: "return=minimal" },

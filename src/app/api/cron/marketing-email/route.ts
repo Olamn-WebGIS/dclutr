@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
     while (true) {
       const recipients = await adminFetch<MarketingRecipient[]>(
-        `rest/v1/email_marketing_preferences?is_subscribed=eq.true&user_id=gt.${cursor}&profiles.created_at=lt.${encodeURIComponent(new Date(now.getTime() - WEEK_MS).toISOString())}&select=user_id,last_lifecycle_week,last_lifecycle_sent_at,last_engaged_at,unengaged_reminder_streak,profiles!inner(display_name,email,created_at)&order=user_id.asc&limit=${PAGE_SIZE}`,
+        `rest/v1/email_marketing_preferences?is_subscribed=eq.true&lifecycle_emails_enabled=eq.true&user_id=gt.${cursor}&profiles.created_at=lt.${encodeURIComponent(new Date(now.getTime() - WEEK_MS).toISOString())}&select=user_id,last_lifecycle_week,last_lifecycle_sent_at,last_engaged_at,unengaged_reminder_streak,profiles!inner(display_name,email,created_at)&order=user_id.asc&limit=${PAGE_SIZE}`,
       );
       if (recipients.length === 0) break;
       cursor = recipients[recipients.length - 1].user_id;
@@ -59,8 +59,9 @@ export async function GET(request: Request) {
             dedupeKey: `marketing-lifecycle:${recipient.user_id}:${accountAgeWeeks}`,
             unsubscribeUrl,
             deferDelivery: true,
+            requiresLifecycleConsent: true,
           });
-          await adminFetch(`rest/v1/email_marketing_preferences?user_id=eq.${recipient.user_id}&is_subscribed=eq.true&last_lifecycle_week=eq.${recipient.last_lifecycle_week}`, {
+          await adminFetch(`rest/v1/email_marketing_preferences?user_id=eq.${recipient.user_id}&is_subscribed=eq.true&lifecycle_emails_enabled=eq.true&last_lifecycle_week=eq.${recipient.last_lifecycle_week}`, {
             method: "PATCH",
             headers: { Prefer: "return=minimal" },
             body: JSON.stringify({
