@@ -27,8 +27,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: [
-    { rel: "icon", url: "/icon.svg" },
-    { rel: "apple-touch-icon", url: "/icon.svg" },
+    { rel: "icon", url: "/icon.svg", type: "image/svg+xml" },
+    { rel: "icon", url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    { rel: "apple-touch-icon", url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
   ],
   applicationName: "D_clutr",
   appleWebApp: {

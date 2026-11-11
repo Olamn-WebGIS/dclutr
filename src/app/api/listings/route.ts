@@ -5,6 +5,7 @@ import { encryptPrivateValue } from "@/lib/server/secrets";
 import { notifyUser } from "@/lib/server/mailer";
 import { purgeExpiredListings } from "@/lib/server/listing-cleanup";
 import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
+import { isPhoneOrLaptopListing, prohibitedListingMessage } from "@/lib/listing-restrictions";
 
 const listingSelect = "id,seller_id,title,description,category,condition,price_ngn,negotiable,meetup_area,photo_paths,status,created_at,expires_at,seller:profiles!listings_seller_id_fkey(display_name,verification_status)";
 
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
     const meetupAreaValue = String(form.get("meetupArea") ?? "").trim();
     const meetupArea = [hostelName, itemAddress, meetupAreaValue].filter(Boolean).join(" • ");
     const negotiable = form.get("negotiable") === "true";
+    if (isPhoneOrLaptopListing(title, description)) throw new BackendError(prohibitedListingMessage, 400);
     const payoutProfiles = await adminFetch<Array<{ user_id: string }>>(`rest/v1/seller_payout_profiles?user_id=eq.${auth.user.id}&select=user_id`);
     const allowedCategories = new Set(["Campus essentials", "Furniture", "Home appliances", "Others"]);
     const allowedConditions = new Set(["Like New", "Good Condition", "Fairly Used", "Used"]);

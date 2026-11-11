@@ -4,10 +4,23 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { showToast } from "@/lib/notifications";
+import { isPhoneOrLaptopListing, prohibitedListingMessage } from "@/lib/listing-restrictions";
 
 type RelistDraft = { id: string; title: string; description: string; category: string; condition: string; price_ngn: number; negotiable: boolean; meetup_area: string };
 
 const meetupLocations = ["Main Campus", "North Gate", "South Gate", "West Gate"];
+const supportedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const maxPhotoSize = 5 * 1024 * 1024;
+
+function getPhotoError(files: File[]) {
+  if (!files.length) return "Please choose 1 to 5 JPG, PNG, or WebP photos to continue.";
+  if (files.length > 5) return "Please choose no more than 5 photos.";
+  if (files.some((file) => !supportedPhotoTypes.has(file.type))) {
+    return "This photo format isn’t supported. Please choose a still JPG, PNG, or WebP image. Live Photos and HEIC/HEIF files aren’t supported yet.";
+  }
+  if (files.some((file) => file.size > maxPhotoSize)) return "This photo is a bit too large. Please choose an image that’s 5 MB or smaller.";
+  return "";
+}
 
 export default function SellPage() {
   const [hasPayoutProfile, setHasPayoutProfile] = useState(false);
@@ -44,14 +57,14 @@ export default function SellPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const photoFiles = formData.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
-    const supportedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-    if (photoFiles.some((file) => !supportedPhotoTypes.has(file.type))) {
-      showToast("No worries—this photo format isn’t supported. Please choose a still JPG, PNG, or WebP image. Live Photos and HEIC/HEIF files aren’t supported yet.", "error");
+    if (isPhoneOrLaptopListing(String(formData.get("title") ?? ""), String(formData.get("description") ?? ""))) {
+      showToast(prohibitedListingMessage, "error");
       return;
     }
-    if (photoFiles.some((file) => file.size > 5 * 1024 * 1024)) {
-      showToast("This photo is a bit too large. Please choose an image that’s 5 MB or smaller.", "error");
+    const photoFiles = formData.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
+    const photoError = getPhotoError(photoFiles);
+    if (photoError) {
+      showToast(photoError, "error");
       return;
     }
     setBusy(true);
@@ -144,8 +157,26 @@ export default function SellPage() {
 
         <div className="field">
           <label htmlFor="photos">Add 1 to 5 photos</label>
-          <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required />
-          <p className="condition-note">Choose still JPG, PNG, or WebP photos (up to 5 MB each). Live Photos and HEIC/HEIF images aren’t supported yet.</p>
+          <input
+            id="photos"
+            name="photos"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            required
+            onInvalid={(event) => {
+              if (event.currentTarget.validity.valueMissing) {
+                event.currentTarget.setCustomValidity("Please choose 1 to 5 JPG, PNG, or WebP photos to continue.");
+              }
+            }}
+            onChange={(event) => {
+              const input = event.currentTarget;
+              const error = getPhotoError(Array.from(input.files ?? []));
+              input.setCustomValidity(error);
+              if (error) input.reportValidity();
+            }}
+          />
+          <p className="condition-note">Choose JPG, PNG, or WebP photos (up to 5 MB each). Live Photos and HEIC/HEIF images aren’t supported.</p>
         </div>
 
         {!hasPayoutProfile && (
@@ -163,7 +194,17 @@ export default function SellPage() {
             </div>
             <div className="field">
               <label htmlFor="accountNumber">Bank account number</label>
-              <input id="accountNumber" name="accountNumber" required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="0123456789" />
+              <input
+                id="accountNumber"
+                name="accountNumber"
+                required
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+                placeholder="0123456789"
+                onInvalid={(event) => event.currentTarget.setCustomValidity("Please enter your 10-digit Nigerian bank account number using numbers only.")}
+                onInput={(event) => event.currentTarget.setCustomValidity("")}
+              />
             </div>
           </>
         )}

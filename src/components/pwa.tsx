@@ -113,7 +113,7 @@ export function PwaAppControls() {
       setNotificationPermission("granted");
       new Notification("D_clutr alert", {
         body: "You are now receiving updates on this device.",
-        icon: "/icon.svg",
+        icon: "/icon-192.png",
       });
       showToast("You’ll get updates on this device.", "success");
       return;
@@ -125,7 +125,7 @@ export function PwaAppControls() {
     if (permission === "granted") {
       new Notification("D_clutr alert", {
         body: "You are now receiving updates on this device.",
-        icon: "/icon.svg",
+        icon: "/icon-192.png",
       });
       showToast("You’ll get updates on this device.", "success");
       return;
