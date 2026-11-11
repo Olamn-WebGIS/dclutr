@@ -63,11 +63,12 @@ export async function POST(request: Request) {
     const meetupArea = [hostelName, itemAddress, meetupAreaValue].filter(Boolean).join(" • ");
     const negotiable = form.get("negotiable") === "true";
     const payoutProfiles = await adminFetch<Array<{ user_id: string }>>(`rest/v1/seller_payout_profiles?user_id=eq.${auth.user.id}&select=user_id`);
-    const allowedCategories = new Set(["Campus essentials", "Furniture", "Home appliances"]);
+    const allowedCategories = new Set(["Campus essentials", "Furniture", "Home appliances", "Others"]);
     const allowedConditions = new Set(["Like New", "Good Condition", "Fairly Used", "Used"]);
+    const allowedMeetupLocations = new Set(["Main Campus", "North Gate", "South Gate", "West Gate"]);
     const files = form.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
-    if (title.length < 3 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || itemAddress.length < 4 || itemAddress.length > 180 || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > 5) {
-      throw new BackendError("Add a valid title, description, price, hostel name, exact item address, and 1–5 photos.");
+    if (title.length < 3 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || !allowedMeetupLocations.has(itemAddress) || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > 5) {
+      throw new BackendError("Add a valid title, description, price, hostel name, pickup location, and 1–5 photos.");
     }
     let payoutDetails: { bankName: string; accountName: string; accountNumber: string } | null = null;
     if (!payoutProfiles.length) {

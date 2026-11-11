@@ -19,4 +19,4 @@ export type Product = {
   imageUrl?: string | null;
 };
 
-export const categories = ["Everything", "Campus essentials", "Furniture", "Home appliances"];
+export const categories = ["Everything", "Campus essentials", "Furniture", "Home appliances", "Others"];

@@ -2,7 +2,7 @@ import { BackendError, adminFetch, errorResponse, getAuthContext, json } from "@
 import { assertSameOrigin } from "@/lib/server/security";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const ALLOWED_CATEGORIES = new Set(["Campus essentials", "Furniture", "Home appliances"]);
+const ALLOWED_CATEGORIES = new Set(["Campus essentials", "Furniture", "Home appliances", "Others"]);
 
 export async function GET() {
   try {

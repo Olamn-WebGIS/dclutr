@@ -4,7 +4,7 @@ import { createEmailClickUrl, createUnsubscribeUrl } from "@/lib/server/marketin
 import { queueEmail } from "@/lib/server/mailer";
 
 const PAGE_SIZE = 50;
-const CATEGORY_ALLOWLIST = new Set(["Campus essentials", "Furniture", "Home appliances"]);
+const CATEGORY_ALLOWLIST = new Set(["Campus essentials", "Furniture", "Home appliances", "Others"]);
 const RECENT_LISTINGS_DAYS = 8;
 
 type AlertRecipient = {

@@ -7,12 +7,15 @@ import { showToast } from "@/lib/notifications";
 
 type RelistDraft = { id: string; title: string; description: string; category: string; condition: string; price_ngn: number; negotiable: boolean; meetup_area: string };
 
+const meetupLocations = ["Main Campus", "North Gate", "South Gate", "West Gate"];
+
 export default function SellPage() {
   const [hasPayoutProfile, setHasPayoutProfile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [relistDraft, setRelistDraft] = useState<RelistDraft | null>(null);
   const [relistLoading, setRelistLoading] = useState(false);
   const router = useRouter();
+  const relistMeetupLocation = relistDraft?.meetup_area.split(" • ").slice(1).join(" • ") ?? "";
 
   useEffect(() => {
     fetch("/api/payout-profile")
@@ -40,9 +43,20 @@ export default function SellPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const photoFiles = formData.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
+    const supportedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (photoFiles.some((file) => !supportedPhotoTypes.has(file.type))) {
+      showToast("No worries—this photo format isn’t supported. Please choose a still JPG, PNG, or WebP image. Live Photos and HEIC/HEIF files aren’t supported yet.", "error");
+      return;
+    }
+    if (photoFiles.some((file) => file.size > 5 * 1024 * 1024)) {
+      showToast("This photo is a bit too large. Please choose an image that’s 5 MB or smaller.", "error");
+      return;
+    }
     setBusy(true);
     try {
-      const response = await fetch("/api/listings", { method: "POST", body: new FormData(event.currentTarget) });
+      const response = await fetch("/api/listings", { method: "POST", body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "We couldn’t post your item. Please check the details and try again.");
       showToast(data.message, "success");
@@ -109,7 +123,10 @@ export default function SellPage() {
 
         <div className="field">
           <label htmlFor="itemAddress">Where should the buyer meet you?</label>
-          <input id="itemAddress" name="itemAddress" required maxLength={180} placeholder="e.g. Room 2B, Hostel A, FUTA South Gate" defaultValue={relistDraft ? relistDraft.meetup_area.split(" • ").slice(1).join(" • ") || `Public meetup near ${relistDraft.meetup_area}` : undefined} />
+          <select id="itemAddress" name="itemAddress" required defaultValue={meetupLocations.includes(relistMeetupLocation) ? relistMeetupLocation : ""}>
+            <option value="" disabled>Choose a pickup location</option>
+            {meetupLocations.map((location) => <option key={location} value={location}>{location}</option>)}
+          </select>
         </div>
 
         <div className="field">
@@ -127,7 +144,8 @@ export default function SellPage() {
 
         <div className="field">
           <label htmlFor="photos">Add 1 to 5 photos</label>
-          <input id="photos" name="photos" type="file" accept="image/*" multiple required />
+          <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required />
+          <p className="condition-note">Choose still JPG, PNG, or WebP photos (up to 5 MB each). Live Photos and HEIC/HEIF images aren’t supported yet.</p>
         </div>
 
         {!hasPayoutProfile && (

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 
-const categories = ["Campus essentials", "Furniture", "Home appliances"];
+const categories = ["Campus essentials", "Furniture", "Home appliances", "Others"];
 
 export default function EmailPreferencesPage() {
   const [subscribed, setSubscribed] = useState(false);
