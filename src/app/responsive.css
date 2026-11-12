@@ -1206,3 +1206,7 @@ button {
   font-size: 12px;
   line-height: 1.5;
 }
+
+.category-pill {
+  flex: 0 0 auto;
+}
