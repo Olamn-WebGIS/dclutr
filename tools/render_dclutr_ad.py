@@ -1,7 +1,4 @@
-"""Render the 15-second D_clutr vertical ad to public/d-clutr-campus-ad.mp4.
-
-Requires Pillow, NumPy, and FFmpeg. All graphics and audio are original.
-"""
+"""Render the 20-second D_clutr ad using the supplied campus-item photos."""
 
 from __future__ import annotations
 
@@ -13,12 +10,19 @@ import wave
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "public" / "d-clutr-campus-ad.mp4"
-WIDTH, HEIGHT, FPS, DURATION = 720, 1280, 30, 15
+WIDTH, HEIGHT, FPS, DURATION = 720, 1280, 30, 20
+PRODUCT_PHOTO_PATHS = (
+    ROOT / "public" / "ad-assets" / "phone-stand.jpg",
+    ROOT / "public" / "ad-assets" / "fridge.jpg",
+    ROOT / "public" / "ad-assets" / "fan.jpg",
+    ROOT / "public" / "ad-assets" / "sneakers-with-bag.jpg",
+)
+MOVING_STUDENT_PHOTO_PATH = ROOT / "public" / "ad-assets" / "student-moving.jpg"
 PAPER = "#F8F7F1"
 WHITE = "#FFFEFA"
 FOREST = "#244B39"
@@ -31,6 +35,38 @@ SAND = "#D9C18F"
 LINE = "#E6E7DC"
 CLAY = "#C88366"
 LILAC = "#DAD2E5"
+
+def load_product_photos() -> tuple[Image.Image, ...]:
+    photos = []
+    for index, path in enumerate(PRODUCT_PHOTO_PATHS):
+        with Image.open(path) as source:
+            photo = ImageOps.exif_transpose(source).convert("RGB")
+        if index in (1, 2):
+            background = Image.new("RGB", photo.size, "white")
+            mask = ImageChops.difference(photo, background).convert("L").point(
+                lambda value: 255 if value > 24 else 0
+            )
+            bounds = mask.getbbox()
+            if bounds:
+                left, top, right, bottom = bounds
+                pad_x = int((right - left) * 0.08)
+                pad_y = int((bottom - top) * 0.05)
+                photo = photo.crop(
+                    (
+                        max(0, left - pad_x),
+                        max(0, top - pad_y),
+                        min(photo.width, right + pad_x),
+                        min(photo.height, bottom + pad_y),
+                    )
+                )
+        photo.thumbnail((216, 192), Image.Resampling.LANCZOS)
+        photos.append(photo)
+    return tuple(photos)
+
+
+PRODUCT_PHOTOS = load_product_photos()
+with Image.open(MOVING_STUDENT_PHOTO_PATH) as source:
+    MOVING_STUDENT_PHOTO = ImageOps.exif_transpose(source).convert("RGB")
 
 
 def font(name: str, size: int) -> ImageFont.FreeTypeFont:
@@ -103,67 +139,31 @@ def pill(
     text(draw, ((box[0] + box[2]) // 2, (box[1] + box[3]) // 2), label, size, color, "sans", "mm")
 
 
-def draw_phone_stand(draw: ImageDraw.ImageDraw, cx: int, cy: int) -> None:
-    panel(draw, (cx - 48, cy - 80, cx + 48, cy + 56), "#30413B", 17)
-    panel(draw, (cx - 37, cy - 67, cx + 37, cy + 43), "#DCE7D9", 8)
-    draw.line((cx - 35, cy + 82, cx + 35, cy + 82), fill=FOREST, width=9)
-    draw.polygon(((cx - 34, cy + 77), (cx, cy + 8), (cx + 34, cy + 77)), fill=SAND)
-    draw.line((cx, cy + 48, cx, cy + 80), fill=FOREST, width=7)
-    draw.arc((cx + 58, cy - 2, cx + 112, cy + 52), 175, 355, fill=CLAY, width=8)
-    draw.arc((cx + 67, cy + 8, cx + 103, cy + 43), 178, 356, fill=CLAY, width=7)
-
-
-def draw_fridge(draw: ImageDraw.ImageDraw, cx: int, cy: int) -> None:
-    panel(draw, (cx - 70, cy - 100, cx + 70, cy + 105), "#E5ECE1", 19, "#9AAF98", 3)
-    draw.line((cx - 67, cy - 8, cx + 67, cy - 8), fill="#AABBA8", width=3)
-    draw.rounded_rectangle((cx + 43, cy - 68, cx + 49, cy - 28), radius=3, fill=FOREST)
-    draw.rounded_rectangle((cx + 43, cy + 18, cx + 49, cy + 58), radius=3, fill=FOREST)
-    draw.ellipse((cx - 8, cy + 75, cx + 8, cy + 91), fill=SAND)
-
-
-def draw_books(draw: ImageDraw.ImageDraw, cx: int, cy: int) -> None:
-    colors = ("#788E73", "#D1A36D", "#B9745E", "#859BA0")
-    for i, color in enumerate(colors):
-        x = cx - 105 + i * 18
-        y = cy - 30 + (i % 2) * 18
-        panel(draw, (x, y, x + 150, y + 42), color, 5)
-        draw.line((x + 15, y + 7, x + 15, y + 35), fill=WHITE, width=3)
-        draw.line((x + 25, y + 11, x + 78, y + 11), fill="#F6F1E7", width=2)
-
-
-def draw_shoes_bag(draw: ImageDraw.ImageDraw, cx: int, cy: int) -> None:
-    draw.rounded_rectangle((cx - 95, cy + 3, cx + 22, cy + 53), radius=20, fill="#C77C61")
-    draw.polygon(((cx - 92, cy + 9), (cx - 48, cy - 35), (cx - 3, cy - 4), (cx + 18, cy + 13)), fill="#D9997C")
-    draw.line((cx - 42, cy - 13, cx - 2, cy + 11), fill=WHITE, width=5)
-    draw.line((cx - 48, cy - 4, cx - 12, cy + 17), fill=WHITE, width=4)
-    panel(draw, (cx + 35, cy - 51, cx + 120, cy + 61), "#789078", 17)
-    draw.arc((cx + 53, cy - 78, cx + 103, cy - 21), 180, 360, fill=FOREST, width=8)
-    panel(draw, (cx + 48, cy - 31, cx + 107, cy + 25), "#A7BBA3", 9)
-
-
-def draw_stuff(draw: ImageDraw.ImageDraw, t: float) -> None:
-    for index, (x, y, size, color) in enumerate(
-        ((85, 680, 58, SAGE), (624, 641, 45, "#E4D7B8"), (125, 895, 34, "#D7E1D2"), (604, 958, 54, "#E6D9CF"))
-    ):
-        bob = math.sin(t * 3 + index * 1.6) * 7
-        draw.ellipse((x - size, y - size + bob, x + size, y + size + bob), fill=color)
-    draw.rounded_rectangle((230, 746, 490, 990), radius=28, fill="#E0E5D8")
-    draw.line((255, 787, 465, 787), fill="#B3C4B0", width=5)
-    draw.rounded_rectangle((268, 865, 452, 935), radius=20, fill=SAND)
-    draw.rectangle((285, 925, 300, 969), fill=FOREST)
-    draw.rectangle((419, 925, 434, 969), fill=FOREST)
-    draw.ellipse((320, 750, 400, 817), fill="#FFFFFF")
-    text(draw, (360, 784), "₦", 46, FOREST, "serif", "mm")
+def draw_stuff(image: Image.Image, t: float) -> None:
+    draw = ImageDraw.Draw(image)
+    card = (54, 630, 666, 978)
+    photo_box = (64, 640, 656, 968)
+    panel(draw, card, WHITE, 24, "#E6E7DC", 2)
+    photo = ImageOps.fit(
+        MOVING_STUDENT_PHOTO,
+        (photo_box[2] - photo_box[0], photo_box[3] - photo_box[1]),
+        method=Image.Resampling.LANCZOS,
+    )
+    mask = Image.new("L", photo.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        (0, 0, photo.width - 1, photo.height - 1), radius=18, fill=255
+    )
+    image.paste(photo, photo_box[:2], mask)
 
 
 def scene_hook(t: float) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), PAPER)
     draw = ImageDraw.Draw(image)
     brand_mark(draw, 52, 48)
-    text(draw, (54, 158), "MADE FOR FUTA, AKURE", 17, MUTED, "sans_bold")
+    text(draw, (54, 158), "FEDERAL UNIVERSITY OF TECHNOLOGY, AKURE", 14, MUTED, "sans_bold")
     slide = int(smooth((t - 0.15) / 0.6) * 28)
     text(draw, (54, 240 + 28 - slide), "Got stuff you\nno longer use?", 67, INK, "serif_regular", spacing=0)
-    draw_stuff(draw, t)
+    draw_stuff(image, t)
     if t > 1.05:
         progress = smooth((t - 1.05) / 0.35)
         y = int(1035 + 32 * (1 - progress))
@@ -174,17 +174,6 @@ def scene_hook(t: float) -> Image.Image:
     return image
 
 
-def draw_product_illustration(draw: ImageDraw.ImageDraw, kind: int, cx: int, cy: int) -> None:
-    if kind == 0:
-        draw_phone_stand(draw, cx, cy)
-    elif kind == 1:
-        draw_fridge(draw, cx, cy)
-    elif kind == 2:
-        draw_books(draw, cx, cy)
-    else:
-        draw_shoes_bag(draw, cx, cy)
-
-
 def scene_items(t: float) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), "#F1EFE6")
     draw = ImageDraw.Draw(image)
@@ -192,16 +181,20 @@ def scene_items(t: float) -> Image.Image:
     text(draw, (55, 150), "CAMPUS LIFE MOVES FAST", 17, MUTED, "sans_bold")
     text(draw, (55, 188), "Give good things\na second chapter.", 49, INK, "serif_regular", spacing=0)
 
-    item_index = min(3, int(t / 1.1))
-    item_progress = (t % 1.1) / 1.1 if item_index < 3 else min(1, (t - 3.3) / 1.7)
+    item_duration = (SCENES[1][1] - SCENES[1][0]) / len(PRODUCT_PHOTOS)
+    item_index = min(len(PRODUCT_PHOTOS) - 1, int(t / item_duration))
+    item_progress = min(1, (t - item_index * item_duration) / item_duration)
     card_y = 455 + int(22 * (1 - smooth(min(1, item_progress / 0.4))))
     panel(draw, (54, card_y, 666, card_y + 358), WHITE, 30, "#E6E7DC", 2)
-    draw.ellipse((270, card_y + 28, 450, card_y + 208), fill=("#E7ECE2", "#EFE7D9", "#E6E9E0", "#F1E4DF")[item_index])
-    draw_product_illustration(draw, item_index, 360, card_y + 120)
+    panel(draw, (244, card_y + 20, 476, card_y + 230), PAPER, 18)
+    photo = PRODUCT_PHOTOS[item_index]
+    photo_x = 360 - photo.width // 2
+    photo_y = card_y + 25 + (192 - photo.height) // 2
+    image.paste(photo, (photo_x, photo_y))
     headings = (
-        ("Phone stand + earphones", "A quick hostel clear-out"),
-        ("Mini fridge", "Moving hostels? Pass it on."),
-        ("Textbooks", "Done with the semester?"),
+        ("Phone stand", "A quick hostel clear-out"),
+        ("Fridge", "Moving hostels? Pass it on."),
+        ("Fan", "Keep your hostel cool."),
         ("Sneakers + a bag", "Make room for the next pair."),
     )
     text(draw, (360, card_y + 245), headings[item_index][0], 24, INK, "serif", "mm")
@@ -280,41 +273,48 @@ def scene_cta(t: float) -> Image.Image:
     brand_mark(draw, 52, 48)
     draw.ellipse((542, 336, 557, 351), fill=SAND)
     text(draw, (360, 518), "Buy and Sell Used Items", 31, INK, "serif", "mm")
-    text(draw, (360, 563), "at FUTA", 33, FOREST, "serif", "mm")
+    text(draw, (360, 563), "Federal University of Technology, Akure", 23, FOREST, "serif", "mm")
     draw.line((250, 625, 470, 625), fill="#C9D6C4", width=2)
     button_y = 716 + int(20 * (1 - smooth(t / 0.55)))
-    panel(draw, (111, button_y, 609, button_y + 87), FOREST, 18)
-    text(draw, (360, button_y + 43), "Start Selling Today", 24, WHITE, "sans_bold", "mm")
-    draw.ellipse((549, button_y + 30, 579, button_y + 60), outline="#DCE7D9", width=2)
-    draw.line((557, button_y + 45, 571, button_y + 45), fill=WHITE, width=2)
-    draw.line((566, button_y + 40, 571, button_y + 45), fill=WHITE, width=2)
-    draw.line((566, button_y + 50, 571, button_y + 45), fill=WHITE, width=2)
+    panel(draw, (55, button_y, 350, button_y + 82), FOREST, 16)
+    text(draw, (189, button_y + 41), "Start Selling Today", 17, WHITE, "sans_bold", "mm")
+    panel(draw, (370, button_y, 665, button_y + 82), SAGE, 16, "#BDD0BE", 2)
+    text(draw, (508, button_y + 41), "Buy D_clutr Items Now", 16, FOREST, "sans_bold", "mm")
     text(draw, (360, 1050), "Pass a good thing on.", 21, MUTED, "serif", "mm")
-    text(draw, (360, 1214), "MADE FOR FUTA  ·  AKURE", 15, MUTED, "sans_bold", "mm")
+    text(draw, (360, 1214), "FEDERAL UNIVERSITY OF TECHNOLOGY  ·  AKURE", 12, MUTED, "sans_bold", "mm")
     return image
 
 
 SCENES = (
-    (0.0, 3.0, scene_hook),
-    (3.0, 8.0, scene_items),
-    (8.0, 13.0, scene_solution),
-    (13.0, 15.0, scene_cta),
+    (0.0, 4.2, scene_hook),
+    (4.2, 10.2, scene_items),
+    (10.2, 14.3, scene_solution),
+    (14.3, 20.0, scene_cta),
 )
 TRANSITION = 0.24
 
 
 def render_frame(time_s: float) -> Image.Image:
+    half_transition = TRANSITION / 2
+    for next_index in range(1, len(SCENES)):
+        boundary = SCENES[next_index][0]
+        if boundary - half_transition <= time_s < boundary + half_transition:
+            progress = (time_s - boundary + half_transition) / TRANSITION
+            paper = Image.new("RGB", (WIDTH, HEIGHT), PAPER)
+            if progress < 0.5:
+                previous_start, _, previous_renderer = SCENES[next_index - 1]
+                previous = previous_renderer(time_s - previous_start)
+                return Image.blend(previous, paper, smooth(progress * 2))
+            _, _, current_renderer = SCENES[next_index]
+            current = current_renderer(time_s - boundary)
+            return Image.blend(paper, current, smooth((progress - 0.5) * 2))
+
     current_index = next(
         (i for i, (start, end, _) in enumerate(SCENES) if start <= time_s < end),
         len(SCENES) - 1,
     )
     start, _, renderer = SCENES[current_index]
-    current = renderer(time_s - start)
-    if current_index and time_s < start + TRANSITION:
-        previous_start, _, previous_renderer = SCENES[current_index - 1]
-        previous = previous_renderer(max(0.0, time_s - TRANSITION - previous_start))
-        return Image.blend(previous, current, smooth((time_s - start) / TRANSITION))
-    return current
+    return renderer(time_s - start)
 
 
 def render_audio(path: Path, workdir: Path) -> None:
@@ -333,7 +333,9 @@ def render_audio(path: Path, workdir: Path) -> None:
         (98.00, 123.47, 146.83),
     )
     chord_length = int(beat * 4 * sample_rate)
-    for index, notes in enumerate((chords * 2)[: math.ceil(DURATION / (beat * 4))]):
+    chord_count = math.ceil(DURATION / (beat * 4))
+    repeated_chords = chords * math.ceil(chord_count / len(chords))
+    for index, notes in enumerate(repeated_chords[:chord_count]):
         start = int(index * beat * 4 * sample_rate)
         end = min(start + chord_length, sample_count)
         local = np.arange(end - start, dtype=np.float64) / sample_rate
@@ -345,7 +347,8 @@ def render_audio(path: Path, workdir: Path) -> None:
         music[start:end] += 0.011 * swell * pad
 
     melody = (392.00, 329.63, 392.00, 493.88, 440.00, 392.00, 329.63, 293.66)
-    for index, frequency in enumerate(melody * 2):
+    melody_count = math.ceil(DURATION / (len(melody) * beat))
+    for index, frequency in enumerate((melody * melody_count)):
         onset = 0.15 + index * beat
         local = times - onset
         active = local >= 0
@@ -414,7 +417,7 @@ def render_audio(path: Path, workdir: Path) -> None:
     )
 
     voice_track = np.zeros(sample_count, dtype=np.float64)
-    voice_windows = ((0.18, 2.92), (3.18, 7.92), (8.18, 12.92), (12.50, 15.0))
+    voice_windows = ((0.10, 4.15), (4.25, 10.10), (10.23, 14.27), (14.40, 19.96))
     for index, (start_s, end_s) in enumerate(voice_windows, start=1):
         voice_path = workdir / f"voice-{index}.wav"
         with wave.open(str(voice_path), "rb") as source:

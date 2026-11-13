@@ -1,4 +1,4 @@
 numpy>=1.23
 Pillow>=9.2
-# Voiceover uses Windows System.Speech and the installed Microsoft Zira Desktop voice.
-# FFmpeg must be installed locally and available on PATH.
+# Voiceover uses Windows System.Speech and Microsoft Zira Desktop.
+# FFmpeg must be installed and available on PATH; photos are in public/ad-assets.
