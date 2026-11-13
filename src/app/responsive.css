@@ -100,19 +100,25 @@ main {
   object-fit: cover;
 }
 
-.hero-ad-mute {
+.hero-ad-video > .hero-ad-mute {
   position: absolute;
   right: 12px;
   bottom: 12px;
   display: grid;
   width: 38px;
+  min-width: 38px;
+  max-width: 38px;
   height: 38px;
+  flex: 0 0 38px;
+  aspect-ratio: 1;
   place-items: center;
+  padding: 0;
   border: 1px solid rgb(255 254 250 / 65%);
   border-radius: 50%;
   background: rgb(23 37 29 / 78%);
   color: #fffefa;
   cursor: pointer;
+  line-height: 0;
   backdrop-filter: blur(8px);
 }
 
@@ -560,11 +566,15 @@ button {
     width: min(100%, 300px);
   }
 
-  .hero-ad-mute {
+  .hero-ad-video > .hero-ad-mute {
     right: 9px;
     bottom: 9px;
     width: 32px;
+    min-width: 32px;
+    max-width: 32px;
     height: 32px;
+    flex: 0 0 32px;
+    aspect-ratio: 1;
   }
 
   .hero-ad-mute svg {
