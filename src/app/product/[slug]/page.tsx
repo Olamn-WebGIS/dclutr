@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, BadgeCheck, Heart, MapPin, Share2, ShieldCheck } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
@@ -85,8 +86,8 @@ export default function ProductPage() {
     <div style={{ paddingTop: 27 }}><Link className="text-link" href="/market"><ArrowLeft size={15} /> Back to D_clutr items</Link></div>
     <div className="detail-layout"><div className={`detail-art tone-${product.color}`}>
       {product.imageUrls?.length ? <>
-        <img src={product.imageUrls[selectedImageIndex] ?? product.imageUrls[0]} alt={`${product.name}, photo ${selectedImageIndex + 1}`} className="product-photo" />
-        {product.imageUrls.length > 1 && <div className="detail-photo-thumbnails" role="group" aria-label="Listing photos">{product.imageUrls.map((imageUrl, index) => <button key={imageUrl} type="button" className={`detail-photo-thumbnail${selectedImageIndex === index ? " is-selected" : ""}`} aria-label={`Show photo ${index + 1}`} aria-pressed={selectedImageIndex === index} onClick={() => setSelectedImageIndex(index)}><img src={imageUrl} alt="" /></button>)}</div>}
+        <Image src={product.imageUrls[selectedImageIndex] ?? product.imageUrls[0]} alt={`${product.name}, photo ${selectedImageIndex + 1}`} className="product-photo" width={1200} height={900} sizes="(max-width: 650px) calc(100vw - 36px), (max-width: 1100px) 55vw, 600px" priority />
+        {product.imageUrls.length > 1 && <div className="detail-photo-thumbnails" role="group" aria-label="Listing photos">{product.imageUrls.map((imageUrl, index) => <button key={imageUrl} type="button" className={`detail-photo-thumbnail${selectedImageIndex === index ? " is-selected" : ""}`} aria-label={`Show photo ${index + 1}`} aria-pressed={selectedImageIndex === index} onClick={() => setSelectedImageIndex(index)}><Image src={imageUrl} alt="" width={100} height={100} sizes="52px" /></button>)}</div>}
       </> : <span className="product-glyph" aria-hidden="true">{product.icon}</span>}
       <span className={product.status === "sold" ? "sold-out-tag" : "product-tag"}>{product.status === "sold" ? "Sold out" : product.condition}</span>
     </div><div className="detail-copy"><span className="eyebrow">{product.category.toUpperCase()}</span><h1>{product.name}</h1><div className="detail-price">{formatNaira(product.price)}</div>{product.negotiable && product.status !== "sold" && <span className="verified-inline">Price is negotiable</span>}<p>{product.description}</p><div className="seller-row"><span className="seller-avatar">{product.initials}</span><span className="seller-info"><strong>{product.sellerName} {product.sellerVerified && <span className="student-badge"><BadgeCheck size={14} /> Verified FUTA seller</span>}</strong><small>Student seller · {product.condition}</small></span></div><div style={{ display: "flex", gap: 7, alignItems: "center", color: "#758075", fontSize: 11 }}><MapPin size={14} /> {product.location} · Agree a safe local meetup</div>

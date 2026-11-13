@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Product } from "@/data/products";
@@ -22,8 +23,8 @@ export function ProductGrid({ items }: { items: Product[] }) {
   }
   return <div className="product-grid">
     {items.map((product) => <article className="product-card" key={product.id} style={{ position: "relative" }}>
-      <Link href={`/product/${product.id}`} className={`product-art tone-${product.color}`} aria-label={`View ${product.name}`}>
-        {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="product-photo" /> : <span className="product-glyph" aria-hidden="true">{product.icon}</span>}
+      <Link href={`/product/${product.id}`} className={`product-art tone-${product.color}${product.imageUrl ? " has-photo" : ""}`} aria-label={`View ${product.name}`}>
+        {product.imageUrl ? <Image src={product.imageUrl} alt={product.name} className="product-photo" width={800} height={600} sizes="(max-width: 650px) 50vw, (max-width: 900px) 50vw, 25vw" /> : <span className="product-glyph" aria-hidden="true">{product.icon}</span>}
         {product.status === "sold" ? <span className="sold-out-tag">Sold out</span> : product.featured && <span className="product-tag">A lovely item</span>}
         {product.sellerVerified && <span className="verified-tag">Verified FUTA seller</span>}
       </Link>

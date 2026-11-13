@@ -13,15 +13,22 @@ export async function GET(request: Request) {
   try {
     await purgeExpiredListings();
     const search = new URL(request.url).searchParams;
-    const filters = ["status=in.(active,sold)", `select=${encodeURIComponent(listingSelect)}`, "order=created_at.desc", "limit=100"];
+    const limit = parseBoundedInteger(search.get("limit"), 100, 1, 100, "limit");
+    const offset = parseBoundedInteger(search.get("offset"), 0, 0, 10000, "offset");
+    const filters = ["status=in.(active,sold)", `select=${encodeURIComponent(listingSelect)}`];
     const category = search.get("category");
-    const term = search.get("q")?.trim().slice(0, 60).replace(/[(),.*]/g, " ");
+    const term = search.get("q")?.trim().slice(0, 60).replace(/[(),.*%_]/g, " ");
+    const sort = search.get("sort");
+    if (sort === "low") filters.push("order=price_ngn.asc,id.asc");
+    else if (sort === "high") filters.push("order=price_ngn.desc,id.desc");
+    else filters.push("order=created_at.desc,id.desc");
     if (category && category !== "Everything") filters.push(`category=eq.${encodeURIComponent(category)}`);
-    if (term) filters.push(`or=${encodeURIComponent(`(title.ilike.*${term}*,description.ilike.*${term}*)`)}`);
+    if (term) filters.push(`or=${encodeURIComponent(`(title.ilike.*${term}*,description.ilike.*${term}*,category.ilike.*${term}*,meetup_area.ilike.*${term}*)`)}`);
+    filters.push(`limit=${limit + 1}`, `offset=${offset}`);
     const rows = await adminFetch<Array<Record<string, unknown> & { id: string; seller: { display_name: string; verification_status: string }; photo_paths: string[] }>>(`rest/v1/listings?${filters.join("&")}`);
     const auth = await getAuthContext();
     if (auth) await recordMarketplaceEventSafely({ userId: auth.user.id, event: "market_visit" });
-    return json({ listings: rows.map((row) => ({
+    return json({ hasMore: rows.length > limit, listings: rows.slice(0, limit).map((row) => ({
       ...row,
       name: row.title,
       price: row.price_ngn,
@@ -39,6 +46,15 @@ export async function GET(request: Request) {
       imageUrl: row.photo_paths?.[0] ? publicImageUrl(row.photo_paths[0]) : null,
     })) });
   } catch (error) { return errorResponse(error); }
+}
+
+function parseBoundedInteger(value: string | null, fallback: number, min: number, max: number, name: string) {
+  if (value === null) return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
+    throw new BackendError(`The ${name} value is invalid.`, 400);
+  }
+  return parsed;
 }
 
 function publicImageUrl(path: string) {
