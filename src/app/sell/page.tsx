@@ -156,7 +156,7 @@ export default function SellPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="photos">Add 1 to 5 photos</label>
+          <label htmlFor="photos">Add 1 to 2 photos</label>
           <input
             id="photos"
             name="photos"
@@ -166,7 +166,7 @@ export default function SellPage() {
             required
             onInvalid={(event) => {
               if (event.currentTarget.validity.valueMissing) {
-                event.currentTarget.setCustomValidity("Please choose 1 to 5 JPG, JPEG, PNG, or WebP photos to continue.");
+                event.currentTarget.setCustomValidity("Please choose 1 to 2 JPG, JPEG, PNG, or WebP photos to continue.");
               }
             }}
             onChange={(event) => {
@@ -176,7 +176,7 @@ export default function SellPage() {
               if (error) input.reportValidity();
             }}
           />
-          <p className="condition-note">Choose JPG, JPEG, PNG, or WebP photos (up to 5 MB each). Live Photos and HEIC/HEIF images aren’t supported.</p>
+          <p className="condition-note">Choose JPG, JPEG, PNG, or WebP photos (up to 5 MB). Live Photos and HEIC/HEIF images aren’t supported.</p>
         </div>
 
         {!hasPayoutProfile && (
