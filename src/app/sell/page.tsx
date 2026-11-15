@@ -21,8 +21,8 @@ const photoCompressionSteps = [
 ];
 
 function getPhotoError(files: File[]) {
-  if (!files.length) return "Please choose 1 to 5 photos to continue.";
-  if (files.length > 5) return "Please choose no more than 5 photos.";
+  if (!files.length) return "Please choose 1 to 3 photos to continue.";
+  if (files.length > 3) return "Please choose no more than 3 photos.";
   const oversized = files.find((file) => file.size > maxPhotoSize);
   if (oversized) return `${oversized.name} is larger than 5 MB. Choose a smaller image.`;
   return "";
@@ -232,7 +232,7 @@ export default function SellPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="photos">Add 1 to 5 photos</label>
+          <label htmlFor="photos">Add 1 to 3 photos</label>
           <input
             id="photos"
             name="photos"
@@ -242,7 +242,7 @@ export default function SellPage() {
             required
             onInvalid={(event) => {
               if (event.currentTarget.validity.valueMissing) {
-                event.currentTarget.setCustomValidity("Please choose 1 to 5 photos to continue.");
+                event.currentTarget.setCustomValidity("Please choose 1 to 3 photos to continue.");
               }
             }}
             onChange={(event) => {
@@ -252,7 +252,7 @@ export default function SellPage() {
               if (error) input.reportValidity();
             }}
           />
-          <p className="condition-note">Choose 1 to 5 photos (up to 5 MB each). Large photos are compressed, and HEIC/HEIF photos are converted when your device supports them.</p>
+          <p className="condition-note">Choose 1 to 3 photos (up to 5 MB each). Large photos are compressed, and HEIC/HEIF photos are converted when your device supports them.</p>
         </div>
 
         {!hasPayoutProfile && (
