@@ -57,13 +57,8 @@ export default function OpenGraphImage() {
           alignItems: "center",
           justifyContent: "center",
           borderRadius: 36,
-          background: "#244b39",
-          color: "#f8f7f1",
-          fontSize: 88,
-          fontWeight: 700,
         }}
       >
-        d
       </div>
     </div>,
     { ...size },
