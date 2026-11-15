@@ -11,15 +11,85 @@ type RelistDraft = { id: string; title: string; description: string; category: s
 const meetupLocations = ["Main Campus", "North Gate", "South Gate", "West Gate"];
 const supportedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoSize = 5 * 1024 * 1024;
+const maxTotalPhotoSize = 4 * 1024 * 1024;
+const targetPhotoSize = 700 * 1024;
+const photoCompressionSteps = [
+  { maxDimension: 1600, quality: 0.78 },
+  { maxDimension: 1400, quality: 0.7 },
+  { maxDimension: 1200, quality: 0.62 },
+  { maxDimension: 1000, quality: 0.52 },
+];
 
 function getPhotoError(files: File[]) {
-  if (!files.length) return "Please choose 1 to 5 JPG, PNG, or WebP photos to continue.";
+  if (!files.length) return "Please choose 1 to 5 photos to continue.";
   if (files.length > 5) return "Please choose no more than 5 photos.";
-  if (files.some((file) => !supportedPhotoTypes.has(file.type))) {
-    return "This photo format isn’t supported. Please choose a still JPG, PNG, or WebP image. Live Photos and HEIC/HEIF files aren’t supported yet.";
-  }
-  if (files.some((file) => file.size > maxPhotoSize)) return "This photo is a bit too large. Please choose an image that’s 5 MB or smaller.";
+  const oversized = files.find((file) => file.size > maxPhotoSize);
+  if (oversized) return `${oversized.name} is larger than 5 MB. Choose a smaller image.`;
   return "";
+}
+
+function canvasToJpeg(canvas: HTMLCanvasElement, quality: number) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Couldn’t prepare this photo. Try saving it as a JPG and upload it again."));
+    }, "image/jpeg", quality);
+  });
+}
+
+async function decodePhoto(file: File): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
+  if (typeof createImageBitmap === "function") {
+    const bitmap = await createImageBitmap(file);
+    return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+  }
+  const imageUrl = URL.createObjectURL(file);
+  const image = new Image();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Could not decode the selected photo."));
+      image.src = imageUrl;
+    });
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      close: () => URL.revokeObjectURL(imageUrl),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(imageUrl);
+    throw error;
+  }
+}
+
+async function preparePhoto(file: File) {
+  if (file.size <= targetPhotoSize && supportedPhotoTypes.has(file.type)) return file;
+  let image: Awaited<ReturnType<typeof decodePhoto>>;
+  try {
+    image = await decodePhoto(file);
+  } catch {
+    throw new Error(`Couldn’t read ${file.name}. Try saving it as a still JPG, PNG, or WebP photo.`);
+  }
+  try {
+    for (const step of photoCompressionSteps) {
+      const scale = Math.min(1, step.maxDimension / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error(`Couldn’t prepare ${file.name}. Try uploading a different photo.`);
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image.source, 0, 0, canvas.width, canvas.height);
+      const blob = await canvasToJpeg(canvas, step.quality);
+      if (blob.size <= targetPhotoSize || step === photoCompressionSteps.at(-1)) {
+        return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, { type: "image/jpeg", lastModified: file.lastModified });
+      }
+    }
+  } finally {
+    image.close();
+  }
+  throw new Error(`Couldn’t prepare ${file.name}. Try uploading a different photo.`);
 }
 
 export default function SellPage() {
@@ -69,6 +139,12 @@ export default function SellPage() {
     }
     setBusy(true);
     try {
+      const preparedPhotos = await Promise.all(photoFiles.map(preparePhoto));
+      if (preparedPhotos.reduce((total, file) => total + file.size, 0) > maxTotalPhotoSize) {
+        throw new Error("The selected photos are still too large to upload together. Choose fewer or smaller photos and try again.");
+      }
+      formData.delete("photos");
+      for (const file of preparedPhotos) formData.append("photos", file, file.name);
       const response = await fetch("/api/listings", { method: "POST", body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "We couldn’t post your item. Please check the details and try again.");
@@ -156,17 +232,17 @@ export default function SellPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="photos">Add 1 to 2 photos</label>
+          <label htmlFor="photos">Add 1 to 5 photos</label>
           <input
             id="photos"
             name="photos"
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
             multiple
             required
             onInvalid={(event) => {
               if (event.currentTarget.validity.valueMissing) {
-                event.currentTarget.setCustomValidity("Please choose 1 to 2 JPG, JPEG, PNG, or WebP photos to continue.");
+                event.currentTarget.setCustomValidity("Please choose 1 to 5 photos to continue.");
               }
             }}
             onChange={(event) => {
@@ -176,7 +252,7 @@ export default function SellPage() {
               if (error) input.reportValidity();
             }}
           />
-          <p className="condition-note">Choose JPG, JPEG, PNG, or WebP photos (up to 5 MB). Live Photos and HEIC/HEIF images aren’t supported.</p>
+          <p className="condition-note">Choose 1 to 5 photos (up to 5 MB each). Large photos are compressed, and HEIC/HEIF photos are converted when your device supports them.</p>
         </div>
 
         {!hasPayoutProfile && (

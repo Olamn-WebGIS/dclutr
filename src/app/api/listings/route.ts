@@ -8,6 +8,8 @@ import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics
 import { isPhoneOrLaptopListing, prohibitedListingMessage } from "@/lib/listing-restrictions";
 
 const listingSelect = "id,seller_id,title,description,category,condition,price_ngn,negotiable,meetup_area,photo_paths,status,created_at,expires_at,seller:profiles!listings_seller_id_fkey(display_name,verification_status)";
+const maxListingPhotos = 5;
+const maxListingPhotoBytes = 4 * 1024 * 1024;
 
 export async function GET(request: Request) {
   try {
@@ -85,8 +87,11 @@ export async function POST(request: Request) {
     const allowedConditions = new Set(["Like New", "Good Condition", "Fairly Used", "Used"]);
     const allowedMeetupLocations = new Set(["Main Campus", "North Gate", "South Gate", "West Gate"]);
     const files = form.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
-    if (title.length < 3 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || !allowedMeetupLocations.has(itemAddress) || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > 5) {
+    if (title.length < 3 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || !allowedMeetupLocations.has(itemAddress) || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > maxListingPhotos) {
       throw new BackendError("Add a valid title, description, price, hostel name, pickup location, and 1–5 photos.");
+    }
+    if (files.reduce((total, file) => total + file.size, 0) > maxListingPhotoBytes) {
+      throw new BackendError("The photos are too large to upload together. Choose smaller photos and try again.");
     }
     let payoutDetails: { bankName: string; accountName: string; accountNumber: string } | null = null;
     if (!payoutProfiles.length) {

@@ -66,10 +66,11 @@ export default function ProductPage() {
   async function shareListing() {
     if (!product) return;
     const url = `${window.location.origin}/product/${product.id}`;
+    const text = `${product.name} · ${formatNaira(product.price)} · ${product.condition}${product.sellerVerified ? " · Verified FUTA seller" : ""}`;
     try {
-      if (navigator.share) await navigator.share({ title: product.name, text: `${product.name} on D_clutr`, url });
+      if (navigator.share) await navigator.share({ title: product.name, text, url });
       else {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(`${text}\n${url}`);
         showToast("Listing link copied. Share it with another FUTA student.", "success");
       }
     } catch (error) {
