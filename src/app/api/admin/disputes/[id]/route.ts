@@ -1,6 +1,7 @@
 import { BackendError, adminFetch, errorResponse, json, requireAdmin } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { notifyOrderParticipants } from "@/lib/server/mailer";
+import { logAdminActivity } from "@/lib/server/admin-activity";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -17,9 +18,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     await adminFetch(`rest/v1/disputes?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: decision, admin_response: response.trim(), resolved_by: resolved ? auth.user.id : null, resolved_at: resolved ? new Date().toISOString() : null }) });
     const orders = await adminFetch<Array<{ buyer_id: string; seller_id: string; dispatched_at: string | null; delivered_at: string | null }>>(`rest/v1/orders?id=eq.${dispute.order_id}&select=buyer_id,seller_id,dispatched_at,delivered_at`);
     const order = orders[0];
+    let restoredOrderStatus: string | null = null;
     if (resolved) {
-      const restoredOrderStatus = decision === "resolved_buyer" ? "cancelled" : order?.delivered_at ? "delivered" : order?.dispatched_at ? "dispatched" : "paid";
+      restoredOrderStatus = decision === "resolved_buyer" ? "cancelled" : order?.delivered_at ? "delivered" : order?.dispatched_at ? "dispatched" : "paid";
       await adminFetch(`rest/v1/orders?id=eq.${dispute.order_id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: restoredOrderStatus }) });
+    }
+    await logAdminActivity(auth, { action: resolved ? `dispute_${decision}` : "dispute_marked_under_review", details: `Dispute ${id}` });
+    if (resolved) {
       if (order) {
         for (const userId of [order.buyer_id, order.seller_id]) await adminFetch("rest/v1/notifications", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ user_id: userId, kind: "dispute_resolution", title: "Dispute reviewed", body: response.trim() }) });
         await notifyOrderParticipants(order.buyer_id, order.seller_id, "D_clutr dispute reviewed", response.trim(), `dispute-resolution:${id}`);

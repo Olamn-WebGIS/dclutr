@@ -1,5 +1,6 @@
 import { BackendError, adminFetch, errorResponse, json, requireAdmin } from "@/lib/server/backend";
 import { assertUuid } from "@/lib/server/security";
+import { logAdminActivity } from "@/lib/server/admin-activity";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; conversationId: string }> }) {
   try {
@@ -14,7 +15,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const senderIds = [...new Set(messages.map((message) => message.sender_id))];
     const profiles = senderIds.length ? await adminFetch<Array<{ id: string; display_name: string }>>(`rest/v1/profiles?id=in.(${senderIds.join(",")})&select=id,display_name`) : [];
     const names = new Map(profiles.map((profile) => [profile.id, profile.display_name]));
-    await adminFetch("rest/v1/admin_account_audit", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ admin_id: admin.user.id, subject_user_id: id, action: "read_conversation", details: `Conversation ${conversationId}` }) });
+    await Promise.all([
+      adminFetch("rest/v1/admin_account_audit", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ admin_id: admin.user.id, subject_user_id: id, action: "read_conversation", details: `Conversation ${conversationId}` }) }),
+      logAdminActivity(admin, { action: "read_conversation_messages", subject: { id, name: "Student" }, details: `Conversation ${conversationId}` }),
+    ]);
     return json({ conversation, messages: messages.map((message) => ({ ...message, sender_name: names.get(message.sender_id) ?? "Deleted student" })) });
   } catch (error) { return errorResponse(error); }
 }

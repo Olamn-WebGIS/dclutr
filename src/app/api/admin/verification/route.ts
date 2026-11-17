@@ -2,6 +2,7 @@ import { BackendError, adminFetch, errorResponse, json, requireAdmin } from "@/l
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { signedStorageUrl } from "@/lib/server/storage";
 import { notifyUser } from "@/lib/server/mailer";
+import { logAdminActivity } from "@/lib/server/admin-activity";
 
 export async function GET() {
   try {
@@ -26,9 +27,12 @@ export async function POST(request: Request) {
     const rows = await adminFetch<Array<{ user_id: string }>>(`rest/v1/verification_submissions?id=eq.${id}&status=eq.pending&select=user_id`);
     const submission = rows[0];
     if (!submission) throw new BackendError("This verification is no longer pending.", 404);
+    const profiles = await adminFetch<Array<{ display_name: string; email: string }>>(`rest/v1/profiles?id=eq.${submission.user_id}&select=display_name,email`);
+    const subject = profiles[0] ? { id: submission.user_id, name: profiles[0].display_name, email: profiles[0].email } : null;
     const status = decision === "approve" ? "approved" : "rejected";
     await adminFetch(`rest/v1/verification_submissions?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status, rejection_reason: decision === "reject" ? reason?.trim() : null, reviewed_by: admin.user.id, reviewed_at: new Date().toISOString() }) });
     await adminFetch(`rest/v1/profiles?id=eq.${submission.user_id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ verification_status: status }) });
+    await logAdminActivity(admin, { action: `verification_${status}`, subject });
     await adminFetch("rest/v1/notifications", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ user_id: submission.user_id, kind: "seller_verification", title: decision === "approve" ? "Seller profile verified" : "Verification needs another try", body: decision === "approve" ? "Your FUTA seller verification was approved. You can now post listings." : reason?.trim() }) });
     await notifyUser(submission.user_id, decision === "approve" ? "Your D_clutr seller profile is verified" : "Your D_clutr verification needs another try", decision === "approve" ? "Your FUTA student seller verification was approved. You can now post listings." : `Your verification was not approved yet. Please review this feedback and resubmit: ${reason?.trim()}`, `verification-review:${id}:${status}`);
     return json({ ok: true, message: decision === "approve" ? "Seller verification approved." : "Feedback sent; the student can resubmit." });

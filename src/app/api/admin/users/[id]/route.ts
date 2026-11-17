@@ -1,6 +1,7 @@
 import { BackendError, adminFetch, errorResponse, json, requireAdmin, userFetch } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { deleteStorageObject } from "@/lib/server/storage";
+import { logAdminActivity } from "@/lib/server/admin-activity";
 
 type ModerationAction = "ban" | "unban" | "restrict_posting" | "allow_posting";
 
@@ -40,7 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (id === admin.user.id) throw new BackendError("You can’t moderate your own admin account.", 409);
     const body = await request.json() as { action?: ModerationAction; note?: string };
     if (!["ban", "unban", "restrict_posting", "allow_posting"].includes(body.action ?? "")) throw new BackendError("Choose a valid account action.");
-    const profiles = await adminFetch<Array<{ id: string; role: string; account_deleted: boolean }>>(`rest/v1/profiles?id=eq.${id}&select=id,role,account_deleted`);
+    const profiles = await adminFetch<Array<{ id: string; display_name: string; email: string; role: string; account_deleted: boolean }>>(`rest/v1/profiles?id=eq.${id}&select=id,display_name,email,role,account_deleted`);
     const profile = profiles[0];
     if (!profile || profile.role !== "student") throw new BackendError("Student account not found.", 404);
     if (profile.account_deleted) throw new BackendError("This account has already been deleted.", 409);
@@ -53,6 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       : { posting_restricted: false, posting_restricted_at: null };
     await adminFetch(`rest/v1/profiles?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ ...changes, account_moderation_note: body.note?.trim() || null }) });
     await adminFetch("rest/v1/admin_account_audit", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ admin_id: admin.user.id, subject_user_id: id, action, details: body.note?.trim() || null }) });
+    await logAdminActivity(admin, { action, subject: { id, name: profile.display_name, email: profile.email } });
     return json({ ok: true, message: action === "ban" ? "Account banned." : action === "unban" ? "Account unbanned." : action === "restrict_posting" ? "Posting restricted." : "Posting access restored." });
   } catch (error) { return errorResponse(error); }
 }
@@ -65,7 +67,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     assertUuid(id);
     if (id === admin.user.id) throw new BackendError("You can’t delete your own admin account.", 409);
     const body = await request.json() as { confirmEmail?: string };
-    const profiles = await adminFetch<Array<{ id: string; email: string; role: string }>>(`rest/v1/profiles?id=eq.${id}&select=id,email,role`);
+    const profiles = await adminFetch<Array<{ id: string; display_name: string; email: string; role: string }>>(`rest/v1/profiles?id=eq.${id}&select=id,display_name,email,role`);
     const profile = profiles[0];
     if (!profile || profile.role !== "student") throw new BackendError("Student account not found.", 404);
     if (body.confirmEmail?.trim().toLowerCase() !== profile.email.toLowerCase()) throw new BackendError("Type the student’s email address exactly to confirm account removal.", 400);
@@ -87,6 +89,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     await userFetch("rest/v1/rpc/admin_delete_student_account", admin.session, { method: "POST", body: JSON.stringify({ p_target_user_id: id, p_actor_id: admin.user.id }) });
+    await logAdminActivity(admin, { action: "delete_student_account", subject: { id, name: profile.display_name, email: profile.email } });
     return json({ ok: true, message: "The account and all linked database records, including chats, orders, disputes, and moderation history, were permanently deleted." });
   } catch (error) { return errorResponse(error); }
 }

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { BadgeCheck } from "lucide-react";
 import { PageHead, PageShell } from "@/components/page-shell";
 import { AdminUserManagement } from "@/components/admin-user-management";
+import { AdminActivityLog } from "@/components/admin-activity-log";
 import { formatNaira } from "@/lib/currency";
 import { showToast } from "@/lib/notifications";
 
@@ -132,6 +133,7 @@ export function AdminDashboard() {
             <button className="button button-dark" disabled={busy === payout.id || !references[payout.id]?.trim()} onClick={() => markPayout(payout.id)}>Record payout sent</button>
           </article>) : <p className="condition-note admin-empty-queue-note">✓ No payouts are due today</p>}
         </div>
+        <AdminActivityLog />
       </>}
     </PageShell>
   );

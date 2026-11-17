@@ -1041,6 +1041,37 @@ button {
   margin: 0;
 }
 
+.admin-activity-list {
+  display: grid;
+}
+
+.admin-activity-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.admin-activity-main,
+.admin-activity-meta {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.admin-activity-main span,
+.admin-activity-meta {
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.admin-activity-meta {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
 @media (max-width: 650px) {
   .admin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1101,6 +1132,15 @@ button {
   .admin-engagement-mobile {
     display: grid;
     gap: 10px;
+  }
+
+  .admin-activity-item {
+    display: grid;
+    gap: 8px;
+  }
+
+  .admin-activity-meta {
+    text-align: left;
   }
 
   .admin-engagement-day {
