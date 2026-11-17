@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         await queueEmail({
           to: listing.seller.email,
           subject: "Your D_clutr listing expires soon",
-          text: `Hello ${listing.seller.display_name},\n\nYour listing “${listing.title}” is scheduled to expire on ${new Date(listing.expires_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" })} WAT.\n\nIf it is still available, use this quick link to prepare a fresh listing before this one expires. You’ll need to add the photos again:\n${relistUrl}\n\nIf it has sold, you can ignore this reminder.`,
+          text: `Hello ${listing.seller.display_name},\n\nYour listing “${listing.title}” is scheduled to expire on ${new Date(listing.expires_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" })} WAT.\n\nIf it is still available, [prepare a fresh listing](${relistUrl}) before this one expires. You’ll need to add the photos again.\n\nIf it has sold, you can ignore this reminder.`,
           dedupeKey: `listing-expiry-reminder:${listing.id}`,
           deferDelivery: true,
         });

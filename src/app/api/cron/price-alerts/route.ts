@@ -69,12 +69,12 @@ export async function GET(request: Request) {
         if (purchasedSimilarItem) continue;
         const matched = [...listingMap.values()].filter((listing) => Date.parse(listing.created_at) >= alertsEnabledAt).slice(0, 10);
         if (!matched.length) continue;
-        const links = matched.map((listing) => `• ${listing.title} — NGN ${listing.price_ngn.toLocaleString("en-NG")}\n  ${createEmailClickUrl(userId, "price-alert", `/product/${listing.id}`)}`).join("\n\n");
+        const links = matched.map((listing) => `• ${listing.title} — NGN ${listing.price_ngn.toLocaleString("en-NG")} · [View item](${createEmailClickUrl(userId, "price-alert", `/product/${listing.id}`)})`).join("\n\n");
         const unsubscribeUrl = createUnsubscribeUrl(userId);
         await queueEmail({
           to: recipient.email,
           subject: `A lower-priced ${matched.length === 1 ? "item is" : "items are"} on D_clutr`,
-          text: `Hello ${recipient.display_name},\n\nYou recently searched for or viewed similar items. These newer listings match what you were looking for and are priced lower than the items you viewed:\n\n${links}\n\nBrowse the FUTA marketplace: ${createEmailClickUrl(userId, "price-alert", "/market")}\n\nTo stop marketplace emails, open this link: ${unsubscribeUrl}`,
+          text: `Hello ${recipient.display_name},\n\nYou recently searched for or viewed similar items. These newer listings match what you were looking for and are priced lower than the items you viewed:\n\n${links}\n\n[Browse the FUTA marketplace](${createEmailClickUrl(userId, "price-alert", "/market")})`,
           dedupeKey: `price-alert-digest:${userId}:${now.toISOString().slice(0, 10)}`,
           unsubscribeUrl,
           deferDelivery: true,

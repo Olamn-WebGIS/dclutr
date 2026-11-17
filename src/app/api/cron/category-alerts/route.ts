@@ -65,13 +65,13 @@ export async function GET(request: Request) {
         try {
           const itemLinks = items.map((item) => {
             const link = createEmailClickUrl(recipient.user_id, "category-alert", `/product/${item.id}`);
-            return `• ${item.title} (${item.category}) — NGN ${item.price_ngn.toLocaleString("en-NG")}\n  ${link}`;
+            return `• ${item.title} (${item.category}) — NGN ${item.price_ngn.toLocaleString("en-NG")} · [View item](${link})`;
           }).join("\n\n");
           const unsubscribeUrl = createUnsubscribeUrl(recipient.user_id);
           await queueEmail({
             to: profile.email,
             subject: `New D_clutr items in ${categories.length === 1 ? categories[0] : "your saved categories"}`,
-            text: `Hello ${profile.display_name},\n\nNew items have been posted in categories you chose to follow:\n\n${itemLinks}\n\nBrowse the FUTA marketplace: ${createEmailClickUrl(recipient.user_id, "category-alert", "/market")}\n\nTo stop marketplace emails, open this link: ${unsubscribeUrl}`,
+            text: `Hello ${profile.display_name},\n\nNew items have been posted in categories you chose to follow:\n\n${itemLinks}\n\n[Browse the FUTA marketplace](${createEmailClickUrl(recipient.user_id, "category-alert", "/market")})`,
             dedupeKey: `category-alert-digest:${recipient.user_id}:${now.toISOString().slice(0, 10)}`,
             unsubscribeUrl,
             deferDelivery: true,

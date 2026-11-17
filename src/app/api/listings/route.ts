@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     const allowedConditions = new Set(["Like New", "Good Condition", "Fairly Used", "Used"]);
     const allowedMeetupLocations = new Set(["Main Campus", "North Gate", "South Gate", "West Gate"]);
     const files = form.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
-    if (title.length < 3 || title.length > 100 || description.length < 10 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || !allowedMeetupLocations.has(itemAddress) || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > maxListingPhotos) {
+    if (title.length < 3 || title.length > 100 || description.length < 3 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || !allowedMeetupLocations.has(itemAddress) || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > maxListingPhotos) {
       throw new BackendError("Add a valid title, description, price, hostel name, pickup location, and 1–3 photos.");
     }
     if (files.reduce((total, file) => total + file.size, 0) > maxListingPhotoBytes) {

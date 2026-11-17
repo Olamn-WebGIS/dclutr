@@ -55,7 +55,7 @@ export async function GET(request: Request) {
           await queueEmail({
             to: profile.email,
             subject: "A little reminder from D_clutr",
-            text: `Hello ${profile.display_name},\n\nWhenever you have something to sell or are looking to buy, D_clutr is here for FUTA students in Akure. Check back to see what’s available or list an item another student might need.\n\nKnow another FUTA student who could use the marketplace? Please share D_clutr with them.\n\nVisit D_clutr: ${marketUrl}\n\nTo stop these marketplace reminders, open this link: ${unsubscribeUrl}`,
+            text: `Hello ${profile.display_name},\n\nWhenever you have something to sell or are looking to buy, D_clutr is here for FUTA students in Akure. Check back to see what’s available or list an item another student might need.\n\nKnow another FUTA student who could use the marketplace? Please share D_clutr with them.\n\n[Visit D_clutr](${marketUrl})`,
             dedupeKey: `marketing-lifecycle:${recipient.user_id}:${accountAgeWeeks}`,
             unsubscribeUrl,
             deferDelivery: true,

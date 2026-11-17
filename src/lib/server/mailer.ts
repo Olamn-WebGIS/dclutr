@@ -22,12 +22,17 @@ function escapeHtml(value: string) {
 }
 
 function emailParagraph(value: string) {
-  const urlPattern = /https?:\/\/[^\s<>]+/g;
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|https?:\/\/[^\s<>]+/g;
   let html = "";
   let cursor = 0;
-  for (const match of value.matchAll(urlPattern)) {
+  for (const match of value.matchAll(linkPattern)) {
     const index = match.index ?? 0;
     const rawUrl = match[0];
+    if (match[2]) {
+      html += `${escapeHtml(value.slice(cursor, index))}<a href="${escapeHtml(match[2])}" style="color:#244b39;">${escapeHtml(match[1])}</a>`;
+      cursor = index + rawUrl.length;
+      continue;
+    }
     const trailing = rawUrl.match(/[),.!?]+$/)?.[0] ?? "";
     const href = trailing ? rawUrl.slice(0, -trailing.length) : rawUrl;
     html += `${escapeHtml(value.slice(cursor, index))}<a href="${escapeHtml(href)}" style="color:#244b39;">${escapeHtml(href)}</a>${escapeHtml(trailing)}`;
@@ -35,6 +40,10 @@ function emailParagraph(value: string) {
   }
   html += escapeHtml(value.slice(cursor));
   return html.replace(/\n/g, "<br>");
+}
+
+function plainTextLinks(value: string) {
+  return value.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1: $2");
 }
 
 function brandedEmailHtml(message: SmtpMessage) {
@@ -90,7 +99,7 @@ async function sendSmtp(message: SmtpMessage, config: SmtpConfig) {
         await command(`RCPT TO:<${safeHeader(message.to)}>`);
         await command("DATA");
         const boundary = `dclutr_${crypto.randomUUID().replaceAll("-", "")}`;
-        const textBody = wrapBase64(message.text);
+        const textBody = wrapBase64(plainTextLinks(message.text));
         const htmlBody = wrapBase64(brandedEmailHtml(message));
         const mail = [
           `From: D_clutr <${safeHeader(config.from)}>`,

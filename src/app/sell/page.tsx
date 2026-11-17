@@ -220,7 +220,7 @@ export default function SellPage() {
 
         <div className="field">
           <label htmlFor="description">Tell buyers a little more</label>
-          <textarea id="description" name="description" required minLength={10} maxLength={3000} placeholder="Describe the item, its condition, and anything a buyer should know." defaultValue={relistDraft?.description} />
+          <textarea id="description" name="description" required minLength={3} maxLength={3000} placeholder="Describe the item, its condition, and anything a buyer should know." defaultValue={relistDraft?.description} />
         </div>
 
         <div className="field">
