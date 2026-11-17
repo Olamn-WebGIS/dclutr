@@ -541,7 +541,10 @@ button {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .admin-grid,
+  .admin-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .verify-steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -886,6 +889,16 @@ button {
   line-height: 1.5;
 }
 
+.admin-stat {
+  min-width: 0;
+  height: auto;
+  overflow-wrap: anywhere;
+}
+
+.admin-stat strong {
+  overflow-wrap: anywhere;
+}
+
 .admin-user-management-card {
   min-width: 0;
 }
@@ -996,7 +1009,78 @@ button {
   white-space: pre-wrap;
 }
 
+.admin-engagement-mobile {
+  display: none;
+}
+
+.admin-engagement-table-wrap {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.admin-engagement-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-engagement-table th {
+  white-space: nowrap;
+}
+
+.admin-queue-card.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-queue-card.is-empty h2,
+.admin-queue-card.is-empty p {
+  margin: 0;
+}
+
 @media (max-width: 650px) {
+  .admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .admin-stat {
+    padding: 12px;
+  }
+
+  .admin-stat .condition-note {
+    display: block;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .admin-stat strong {
+    margin-top: 6px;
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .admin-stat-note {
+    display: none;
+  }
+
+  .admin-queue-card.is-empty {
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+
+  .admin-queue-card.is-empty h2 {
+    font-size: 15px;
+  }
+
+  .admin-empty-queue-note {
+    flex: 0 0 auto;
+    font-size: 10px;
+  }
+
   .admin-user-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1005,9 +1089,56 @@ button {
     flex-direction: column;
   }
 
+  .admin-user-search button {
+    width: 100%;
+  }
+
   .admin-user-list,
   .admin-user-detail {
     max-height: 420px;
+  }
+
+  .admin-engagement-mobile {
+    display: grid;
+    gap: 10px;
+  }
+
+  .admin-engagement-day {
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--white);
+  }
+
+  .admin-engagement-day h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+  }
+
+  .admin-engagement-day dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    margin: 0;
+  }
+
+  .admin-engagement-day dl > div {
+    min-width: 0;
+  }
+
+  .admin-engagement-day dt {
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  .admin-engagement-day dd {
+    margin: 2px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .admin-engagement-table-wrap {
+    display: none;
   }
 }
 

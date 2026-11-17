@@ -42,8 +42,14 @@ export function AdminAnalyticsPanel() {
         <div className="admin-grid">
           {cells.map(({ key, totalKey, label }) => <div className="admin-stat" key={key}><span className="condition-note">{label}</span><strong>{analytics.totals[totalKey]}</strong></div>)}
         </div>
-        <div style={{ overflowX: "auto", marginTop: 20 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+        <div className="admin-engagement-mobile">
+          {analytics.days.map((day) => <article className="admin-engagement-day" key={day.day}>
+            <h3>{new Date(`${day.day}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}</h3>
+            <dl>{cells.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd>{day[key]}</dd></div>)}</dl>
+          </article>)}
+        </div>
+        <div className="admin-engagement-table-wrap">
+          <table className="admin-engagement-table">
             <thead><tr>{["Date (UTC)", ...cells.map(({ label }) => label)].map((label) => <th key={label} style={{ padding: 8, borderBottom: "1px solid #e6e7dc" }}>{label}</th>)}</tr></thead>
             <tbody>{analytics.days.map((day) => <tr key={day.day}>
               <td style={{ padding: 8, borderBottom: "1px solid #e6e7dc" }}>{day.day}</td>
