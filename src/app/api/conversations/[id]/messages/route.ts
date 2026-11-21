@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetch } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { assertAllowedChatText } from "@/lib/server/chat-moderation";
@@ -19,15 +20,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     assertUuid(id);
     const conversation = await participant(id, auth.session, auth.user.id);
     const readColumn = auth.user.id === conversation.buyer_id ? "buyer_last_read_at" : "seller_last_read_at";
+    const otherReadColumn = auth.user.id === conversation.buyer_id ? "seller_last_read_at" : "buyer_last_read_at";
+    const readAt = new Date().toISOString();
     await adminFetch(`rest/v1/conversations?id=eq.${id}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ [readColumn]: new Date().toISOString() }),
+      body: JSON.stringify({ [readColumn]: readAt }),
     });
+    const conversations = await adminFetch<Array<{ buyer_last_read_at: string | null; seller_last_read_at: string | null }>>(
+      `rest/v1/conversations?id=eq.${id}&select=buyer_last_read_at,seller_last_read_at`,
+    );
+    const otherReadAt = conversations[0]?.[otherReadColumn];
     const messages = await userFetch<Array<{ id: string; sender_id: string; body: string; created_at: string }>>(`rest/v1/messages?conversation_id=eq.${id}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id,sender_id,body,created_at&order=created_at.asc&limit=200`, auth.session);
     return json({ messages: await Promise.all(messages.map(async (message) => {
       const profiles = await adminFetch<Array<{ display_name: string }>>(`rest/v1/profiles?id=eq.${message.sender_id}&select=display_name`);
-      return { ...message, senderName: profiles[0]?.display_name ?? "Student", mine: message.sender_id === auth.user.id };
+      const seen = message.sender_id === auth.user.id && otherReadAt !== null && otherReadAt !== undefined && new Date(otherReadAt) >= new Date(message.created_at);
+      return { ...message, senderName: profiles[0]?.display_name ?? "Student", mine: message.sender_id === auth.user.id, deliveryStatus: message.sender_id === auth.user.id ? seen ? "seen" : "sent" : null };
     })) });
   } catch (error) { return errorResponse(error); }
 }
@@ -45,17 +53,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const paymentConfirmed = orderRows[0] && ["paid", "dispatched", "delivered", "completed"].includes(orderRows[0].status);
     const moderatedBody = assertAllowedChatText(body ?? "", paymentConfirmed);
     if (!await checkRateLimit(`chat-send:${auth.user.id}:${id}`, request, 30, 300)) throw new BackendError("You’re sending messages too quickly. Wait a few minutes and try again.", 429);
-    const saved = await userFetch<Array<{ id: string }>>("rest/v1/messages?select=id", auth.session, { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ conversation_id: id, sender_id: auth.user.id, body: moderatedBody, expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }) });
+    const saved = await userFetch<Array<{ id: string; created_at: string }>>("rest/v1/messages?select=id,created_at", auth.session, { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ conversation_id: id, sender_id: auth.user.id, body: moderatedBody, expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }) });
+    if (!saved[0]) throw new BackendError("Your message could not be saved. Please try again.", 503);
     await adminFetch(`rest/v1/conversations?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ last_message_at: new Date().toISOString() }) });
     const recipient = conversation.buyer_id === auth.user.id ? conversation.seller_id : conversation.buyer_id;
-    if (saved[0]) {
-      const profiles = await adminFetch<Array<{ display_name: string }>>(`rest/v1/profiles?id=eq.${auth.user.id}&select=display_name`);
-      const senderName = profiles[0]?.display_name ?? "A FUTA student";
-      const messagePreview = moderatedBody.replace(/\s+/g, " ").trim();
-      const bodyPreview = messagePreview.length > 120 ? `${messagePreview.slice(0, 117)}…` : messagePreview;
-      await sendPushToUser(recipient, { title: `Message from ${senderName}`, body: bodyPreview, url: `/chat?conversation=${id}`, tag: `message-${id}` });
-      if (await checkRateLimit(`chat-email:${recipient}:${id}`, request, 1, 300)) await notifyUser(recipient, "New D_clutr message", "A student sent you a message about your marketplace conversation. Sign in to D_clutr to read and reply.", `message:${saved[0].id}`);
-    }
-    return json({ ok: true });
+    const savedMessage = saved[0];
+    after(async () => {
+      try {
+        const profiles = await adminFetch<Array<{ display_name: string }>>(`rest/v1/profiles?id=eq.${auth.user.id}&select=display_name`);
+        const senderName = profiles[0]?.display_name ?? "A FUTA student";
+        const messagePreview = moderatedBody.replace(/\s+/g, " ").trim();
+        const bodyPreview = messagePreview.length > 120 ? `${messagePreview.slice(0, 117)}…` : messagePreview;
+        await sendPushToUser(recipient, { title: `Message from ${senderName}`, body: bodyPreview, url: `/chat?conversation=${id}`, tag: `message-${id}` });
+        if (await checkRateLimit(`chat-email:${recipient}:${id}`, request, 1, 300)) await notifyUser(recipient, "New D_clutr message", "A student sent you a message about your marketplace conversation. Sign in to D_clutr to read and reply.", `message:${savedMessage.id}`);
+      } catch (error) {
+        console.error("Unable to process D_clutr message notifications:", error instanceof Error ? error.message : "Message notifications failed.");
+      }
+    });
+    return json({ ok: true, message: savedMessage });
   } catch (error) { return errorResponse(error); }
 }

@@ -9,7 +9,7 @@ import { formatMarketplaceStatus } from "@/lib/marketplace-copy";
 import { showToast } from "@/lib/notifications";
 
 type Conversation = { id: string; listingTitle: string; otherName: string; role: "buyer" | "seller"; priceNgn: number; unreadCount: number };
-type Message = { id: string; body: string; senderName: string; mine: boolean; created_at: string };
+type Message = { id: string; body: string; senderName: string; mine: boolean; created_at: string; deliveryStatus?: "sending" | "sent" | "seen"; conversationId?: string };
 type Order = {
   id: string;
   conversation_id: string;
@@ -70,7 +70,10 @@ export default function ChatPage() {
     const orderData = await orderResponse.json();
     if (!messageResponse.ok) throw new Error(messageData.error || "We couldn’t load your messages. Please try again.");
     if (!orderResponse.ok) throw new Error(orderData.error || "We couldn’t load this order. Please try again.");
-    setMessages(messageData.messages);
+    setMessages((current) => {
+      const pending = current.filter((message) => message.conversationId === activeId && message.deliveryStatus === "sending" && !messageData.messages.some((saved: Message) => saved.id === message.id));
+      return [...messageData.messages, ...pending].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    });
     setOrders(orderData.orders);
     setConversations((current) => current.map((conversation) => conversation.id === activeId ? { ...conversation, unreadCount: 0 } : conversation));
     window.dispatchEvent(new Event("dclutr:activity-change"));
@@ -97,13 +100,33 @@ export default function ChatPage() {
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft.trim() || !activeId) return;
+    const body = draft.trim();
+    const temporaryId = `pending-${crypto.randomUUID()}`;
+    const optimisticMessage: Message = {
+      id: temporaryId,
+      body,
+      senderName: "You",
+      mine: true,
+      created_at: new Date().toISOString(),
+      deliveryStatus: "sending",
+      conversationId: activeId,
+    };
+    setMessages((current) => [...current, optimisticMessage]);
+    setDraft("");
     setBusy(true);
     try {
-      const response = await fetch(`/api/conversations/${activeId}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body: draft }) });
+      const response = await fetch(`/api/conversations/${activeId}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Your message didn’t send. Please try again.");
-      setDraft(""); await loadData();
-    } catch (cause) { showToast(cause instanceof Error ? cause.message : "Your message didn’t send. Please try again.", "error"); }
+      setMessages((current) => current.map((message) => message.id === temporaryId
+        ? { ...message, id: result.message.id, created_at: result.message.created_at, deliveryStatus: "sent" }
+        : message));
+      loadData().catch((cause: unknown) => showToast(cause instanceof Error ? cause.message : "We couldn’t refresh your chat.", "error"));
+    } catch (cause) {
+      setMessages((current) => current.filter((message) => message.id !== temporaryId));
+      setDraft(body);
+      showToast(cause instanceof Error ? cause.message : "Your message didn’t send. Please try again.", "error");
+    }
     finally { setBusy(false); }
   }
 
@@ -158,7 +181,7 @@ export default function ChatPage() {
           {["terms_pending", "awaiting_payment"].includes(order.status) && <button className="outline-button" disabled={busy} onClick={() => post(`/api/orders/${order.id}/cancel`)}>Cancel this exchange</button>}
           {["paid", "dispatched", "delivered"].includes(order.status) && <Link className="text-link" href={`/disputes?order=${order.id}`}>Open a dispute</Link>}
         </div>}
-        <div className="chat-messages" aria-live="polite">{messages.map((message) => <div key={message.id} className={`bubble ${message.mine ? "mine" : ""}`}><small>{message.mine ? "You" : message.senderName} · {new Date(message.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}</small><br />{message.body}</div>)}</div>
+        <div className="chat-messages" aria-live="polite">{messages.map((message) => <div key={message.id} className={`bubble ${message.mine ? "mine" : ""}`}><small>{message.mine ? "You" : message.senderName} · {new Date(message.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}</small><br />{message.body}{message.mine && message.deliveryStatus && <small className="message-delivery-status">{message.deliveryStatus}</small>}</div>)}</div>
         {canShareDetails && <div className="notice">Payment is confirmed. You can now share pickup details here. Keep the rest of your exchange on D_clutr.</div>}
         <form className="chat-compose" onSubmit={sendMessage}><textarea rows={2} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} aria-label="Write a message" placeholder={canShareDetails ? "Write a message about pickup or contact details" : "Message the seller (no phone numbers or bank details yet)"} maxLength={2000} /><button aria-label="Send message" type="submit" disabled={busy}><Send size={15} /></button></form>
           <p className="chat-safety-note" style={{ color: "#7b857a", fontSize: 10, padding: "0 14px 12px" }}><ShieldCheck size={13} style={{ verticalAlign: "middle" }} /> Keep messages here. For your safety, phone numbers and bank details are blocked until payment is confirmed. Chats are deleted after 30 days.</p>
