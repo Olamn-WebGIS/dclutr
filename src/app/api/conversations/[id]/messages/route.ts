@@ -2,6 +2,7 @@ import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetc
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { assertAllowedChatText } from "@/lib/server/chat-moderation";
 import { notifyUser } from "@/lib/server/mailer";
+import { sendPushToUser } from "@/lib/server/push-notifications";
 import { checkRateLimit } from "@/lib/server/password-auth";
 
 async function participant(id: string, session: NonNullable<Awaited<ReturnType<typeof getAuthContext>>>["session"], userId: string) {
@@ -47,7 +48,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const saved = await userFetch<Array<{ id: string }>>("rest/v1/messages?select=id", auth.session, { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ conversation_id: id, sender_id: auth.user.id, body: moderatedBody, expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }) });
     await adminFetch(`rest/v1/conversations?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ last_message_at: new Date().toISOString() }) });
     const recipient = conversation.buyer_id === auth.user.id ? conversation.seller_id : conversation.buyer_id;
-    if (saved[0] && await checkRateLimit(`chat-email:${recipient}:${id}`, request, 1, 300)) await notifyUser(recipient, "New D_clutr message", "A student sent you a message about your marketplace conversation. Sign in to D_clutr to read and reply.", `message:${saved[0].id}`);
+    if (saved[0]) {
+      await sendPushToUser(recipient, { title: "New message", body: "You have an unread message in your D_clutr chat.", url: "/chat", tag: `message-${id}` });
+      if (await checkRateLimit(`chat-email:${recipient}:${id}`, request, 1, 300)) await notifyUser(recipient, "New D_clutr message", "A student sent you a message about your marketplace conversation. Sign in to D_clutr to read and reply.", `message:${saved[0].id}`);
+    }
     return json({ ok: true });
   } catch (error) { return errorResponse(error); }
 }

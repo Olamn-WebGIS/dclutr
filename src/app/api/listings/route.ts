@@ -3,6 +3,7 @@ import { assertSameOrigin, requireImage } from "@/lib/server/security";
 import { uploadFile } from "@/lib/server/storage";
 import { encryptPrivateValue } from "@/lib/server/secrets";
 import { notifyUser } from "@/lib/server/mailer";
+import { sendPushToAllUsers } from "@/lib/server/push-notifications";
 import { purgeExpiredListings } from "@/lib/server/listing-cleanup";
 import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
 import { isPhoneOrLaptopListing, prohibitedListingMessage } from "@/lib/listing-restrictions";
@@ -118,6 +119,12 @@ export async function POST(request: Request) {
     if (rows[0]) {
       await recordMarketplaceEventSafely({ userId: auth.user.id, event: "listing_created", entityId: rows[0].id });
       await notifyUser(auth.user.id, "Your D_clutr listing is live", `“${title}” is now live in the FUTA marketplace. It expires in seven days if unsold. When it expires, it is removed and you can create a fresh listing from your profile.`, `listing-created:${rows[0].id}`);
+      await sendPushToAllUsers({
+        title: "New item on D_clutr",
+        body: `A new item has just been posted: “${title}”.`,
+        url: `/product/${rows[0].id}`,
+        tag: `listing-${rows[0].id}`,
+      }, auth.user.id);
     }
     return json({ ok: true, listing: rows[0], message: "Your listing is live for seven days." }, 201);
   } catch (error) { return errorResponse(error); }

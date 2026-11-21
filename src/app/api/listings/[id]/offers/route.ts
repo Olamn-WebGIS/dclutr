@@ -1,6 +1,7 @@
 import { BackendError, adminFetch, errorResponse, getAuthContext, json, userFetch } from "@/lib/server/backend";
 import { assertSameOrigin, assertUuid } from "@/lib/server/security";
 import { notifyUser, notifyOrderParticipantsByRole } from "@/lib/server/mailer";
+import { sendPushToUser } from "@/lib/server/push-notifications";
 import { formatNaira } from "@/lib/currency";
 import { checkRateLimit } from "@/lib/server/password-auth";
 import { recordMarketplaceEventSafely } from "@/lib/server/marketplace-analytics";
@@ -29,8 +30,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const offer = rows[0];
     if (offer?.was_updated) {
       await notifyUser(listing.seller_id, "A D_clutr offer was updated", `A student updated their offer to ${formatNaira(amount)} for “${listing.title}”. Sign in to review it.`, `offer:updated:${offer.offer_id}:${amount}`);
+      await sendPushToUser(listing.seller_id, { title: "Offer updated", body: `An offer for “${listing.title}” is now ${formatNaira(amount)}.`, url: "/offers", tag: `offer-${offer.offer_id}` });
     } else {
       await notifyUser(listing.seller_id, "New offer on your D_clutr listing", `A student offered ${formatNaira(amount)} for “${listing.title}”. Sign in to review and accept or decline the offer.`, `offer:new:${offer?.offer_id}:seller`);
+      if (offer) await sendPushToUser(listing.seller_id, { title: "New offer", body: `A student offered ${formatNaira(amount)} for “${listing.title}”.`, url: "/offers", tag: `offer-${offer.offer_id}` });
     }
     return json({ ok: true, offerId: offer?.offer_id, wasUpdated: offer?.was_updated ?? false, message: offer?.was_updated ? "Your pending offer was updated." : "Offer sent to the seller." }, offer?.was_updated ? 200 : 201);
   } catch (error) { return errorResponse(error); }
