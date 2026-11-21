@@ -54,6 +54,27 @@ main {
   line-height: 1;
 }
 
+.icon-link {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.icon-link.is-active {
+  background: var(--sage);
+  color: var(--forest-dark);
+}
+
+.icon-link.is-active svg {
+  fill: var(--sage-mid);
+}
+
+.nav-account-link.is-active .nav-account-icon {
+  color: var(--forest-dark);
+  fill: var(--sage-mid);
+}
+
 .nav-account-icon {
   display: none;
 }

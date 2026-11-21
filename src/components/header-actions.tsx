@@ -10,9 +10,9 @@ type HeaderCounts = { unread_messages: number; pending_offers: number; checkout_
 
 const emptyCounts: HeaderCounts = { unread_messages: 0, pending_offers: 0, checkout_orders: 0 };
 
-function CountLink({ href, label, count, children }: { href: string; label: string; count: number; children: React.ReactNode }) {
+function CountLink({ href, label, count, active, children }: { href: string; label: string; count: number; active: boolean; children: React.ReactNode }) {
   return (
-    <Link className="icon-link" href={href} aria-label={count > 0 ? `${label}, ${count} pending` : label} title={label}>
+    <Link className={`icon-link${active ? " is-active" : ""}`} href={href} aria-label={count > 0 ? `${label}, ${count} pending` : label} aria-current={active ? "page" : undefined} title={label}>
       {children}
       {count > 0 && <span className="header-count-badge" aria-hidden="true">{count > 99 ? "99+" : count}</span>}
     </Link>
@@ -22,6 +22,7 @@ function CountLink({ href, label, count, children }: { href: string; label: stri
 export function HeaderActions() {
   const [counts, setCounts] = useState(emptyCounts);
   const pathname = usePathname();
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     let active = true;
@@ -56,10 +57,10 @@ export function HeaderActions() {
   return (
     <div className="nav-actions">
       <Link className="nav-sell" href="/sell">Post an item</Link>
-      <CountLink href="/favorites" label="Saved items" count={0}><Heart size={18} strokeWidth={1.7} /></CountLink>
-      <CountLink href="/chat" label="Messages" count={counts.unread_messages}><MessageCircle size={18} strokeWidth={1.7} /></CountLink>
-      <CountLink href="/offers" label="Offers" count={counts.pending_offers}><Tag size={18} strokeWidth={1.7} /></CountLink>
-      <CountLink href="/checkout" label="Checkout" count={counts.checkout_orders}><ShoppingBag size={18} strokeWidth={1.7} /></CountLink>
+      <CountLink href="/favorites" label="Saved items" count={0} active={isActive("/favorites")}><Heart size={18} strokeWidth={1.7} /></CountLink>
+      <CountLink href="/chat" label="Messages" count={counts.unread_messages} active={isActive("/chat")}><MessageCircle size={18} strokeWidth={1.7} /></CountLink>
+      <CountLink href="/offers" label="Offers" count={counts.pending_offers} active={isActive("/offers")}><Tag size={18} strokeWidth={1.7} /></CountLink>
+      <CountLink href="/checkout" label="Checkout" count={counts.checkout_orders} active={isActive("/checkout")}><ShoppingBag size={18} strokeWidth={1.7} /></CountLink>
       <AccountNavigation />
       {pathname === "/market" && <Link className="mobile-post-item" href="/sell" aria-label="Post an item" title="Post an item"><Plus size={24} strokeWidth={2} /></Link>}
     </div>
