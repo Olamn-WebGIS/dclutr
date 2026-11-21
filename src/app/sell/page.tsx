@@ -191,6 +191,7 @@ export default function SellPage() {
             <label htmlFor="condition">Condition</label>
             <select id="condition" name="condition" required defaultValue={relistDraft?.condition ?? ""}>
               <option value="" disabled>Choose one</option>
+              <option>New</option>
               <option>Like New</option>
               <option>Good Condition</option>
               <option>Fairly Used</option>

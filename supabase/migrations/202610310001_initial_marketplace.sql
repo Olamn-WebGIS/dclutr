@@ -75,7 +75,7 @@ create table public.listings (
   title text not null check (char_length(title) between 4 and 100),
   description text not null check (char_length(description) between 10 and 3000),
   category text not null,
-  condition text not null check (condition in ('Like New', 'Good Condition', 'Fairly Used', 'Used')),
+  condition text not null check (condition in ('New', 'Like New', 'Good Condition', 'Fairly Used', 'Used')),
   price_ngn integer not null check (price_ngn > 0),
   negotiable boolean not null default false,
   meetup_area text not null,

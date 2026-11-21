@@ -4,7 +4,7 @@ export type Product = {
   category: string;
   price: number;
   originalPrice: number;
-  condition: "Like New" | "Good Condition" | "Fairly Used" | "Used";
+  condition: "New" | "Like New" | "Good Condition" | "Fairly Used" | "Used";
   location: string;
   seller: string;
   initials: string;

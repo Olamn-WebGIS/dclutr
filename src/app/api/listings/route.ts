@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     if (isPhoneOrLaptopListing(title, description)) throw new BackendError(prohibitedListingMessage, 400);
     const payoutProfiles = await adminFetch<Array<{ user_id: string }>>(`rest/v1/seller_payout_profiles?user_id=eq.${auth.user.id}&select=user_id`);
     const allowedCategories = new Set(["Campus essentials", "Furniture", "Home appliances", "Others"]);
-    const allowedConditions = new Set(["Like New", "Good Condition", "Fairly Used", "Used"]);
+    const allowedConditions = new Set(["New", "Like New", "Good Condition", "Fairly Used", "Used"]);
     const allowedMeetupLocations = new Set(["Main Campus", "North Gate", "South Gate", "West Gate"]);
     const files = form.getAll("photos").filter((entry): entry is File => entry instanceof File && entry.size > 0);
     if (title.length < 3 || title.length > 100 || description.length < 3 || description.length > 3000 || !allowedCategories.has(category) || !allowedConditions.has(condition) || !Number.isSafeInteger(price) || price < 100 || hostelName.length < 2 || hostelName.length > 80 || !allowedMeetupLocations.has(itemAddress) || !meetupArea || meetupArea.length > 200 || files.length < 1 || files.length > maxListingPhotos) {
