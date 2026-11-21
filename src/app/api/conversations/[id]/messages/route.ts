@@ -49,7 +49,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await adminFetch(`rest/v1/conversations?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ last_message_at: new Date().toISOString() }) });
     const recipient = conversation.buyer_id === auth.user.id ? conversation.seller_id : conversation.buyer_id;
     if (saved[0]) {
-      await sendPushToUser(recipient, { title: "New message", body: "You have an unread message in your D_clutr chat.", url: "/chat", tag: `message-${id}` });
+      const profiles = await adminFetch<Array<{ display_name: string }>>(`rest/v1/profiles?id=eq.${auth.user.id}&select=display_name`);
+      const senderName = profiles[0]?.display_name ?? "A FUTA student";
+      const messagePreview = moderatedBody.replace(/\s+/g, " ").trim();
+      const bodyPreview = messagePreview.length > 120 ? `${messagePreview.slice(0, 117)}…` : messagePreview;
+      await sendPushToUser(recipient, { title: `Message from ${senderName}`, body: bodyPreview, url: `/chat?conversation=${id}`, tag: `message-${id}` });
       if (await checkRateLimit(`chat-email:${recipient}:${id}`, request, 1, 300)) await notifyUser(recipient, "New D_clutr message", "A student sent you a message about your marketplace conversation. Sign in to D_clutr to read and reply.", `message:${saved[0].id}`);
     }
     return json({ ok: true });
