@@ -29,7 +29,7 @@ function emailParagraph(value: string) {
     const index = match.index ?? 0;
     const rawUrl = match[0];
     if (match[2]) {
-      html += `${escapeHtml(value.slice(cursor, index))}<a href="${escapeHtml(match[2])}" style="color:#244b39;">${escapeHtml(match[1])}</a>`;
+      html += `${escapeHtml(value.slice(cursor, index))}<a href="${escapeHtml(match[2])}" style="color:#1f5e43;background:#edf4df;padding:2px 4px;border-radius:3px;font-weight:bold;font-style:italic;text-decoration:underline;">${escapeHtml(match[1])}</a>`;
       cursor = index + rawUrl.length;
       continue;
     }

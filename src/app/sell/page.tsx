@@ -94,6 +94,7 @@ async function preparePhoto(file: File) {
 
 export default function SellPage() {
   const [hasPayoutProfile, setHasPayoutProfile] = useState(false);
+  const [payoutProfileLoading, setPayoutProfileLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [relistDraft, setRelistDraft] = useState<RelistDraft | null>(null);
   const [relistLoading, setRelistLoading] = useState(false);
@@ -107,7 +108,8 @@ export default function SellPage() {
         const payout = await response.json();
         setHasPayoutProfile(Boolean(payout.hasPayoutProfile));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setPayoutProfileLoading(false));
   }, []);
 
   useEffect(() => {
@@ -256,7 +258,7 @@ export default function SellPage() {
           <p className="condition-note">Choose 1 to 3 photos (up to 5 MB each). Large photos are compressed, and HEIC/HEIF photos are converted when your device supports them.</p>
         </div>
 
-        {!hasPayoutProfile && (
+        {!payoutProfileLoading && !hasPayoutProfile && (
           <>
             <p className="condition-note">For your first post, add the bank details you want us to use for your seller payout. You can update them from your profile later.</p>
             <div className="field-row">
